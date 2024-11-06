@@ -1,101 +1,152 @@
-import Image from "next/image";
+// src/app/page.tsx
+'use client';
 
-export default function Home() {
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+interface Preset {
+  org_key: string;
+  user_key: string;
+  module_key: string;
+  industry: string;
+  subindustry: string;
+}
+
+const PRESETS: Record<string, Preset> = {
+  preset1: {
+    org_key: 'ingentas.io',
+    user_key: 'srklite12@gmail.com',
+    module_key: 'FM_INFO_PRODUCT',
+    industry: 'Manufacturing',
+    subindustry: 'Robotics and Automation'
+  },
+  preset2: {
+    org_key: 'test.fieldmobi.com',
+    user_key: 'basit.shaikh@fieldmobi.com',
+    module_key: 'BALLMAT_CARGMNGR_LIST',
+    industry: 'Logistics',
+    subindustry: 'Transportation'
+  },
+  preset3: {
+    org_key: 'demo.fieldmobi.com',
+    user_key: 'demo.user@fieldmobi.com',
+    module_key: 'CRM_CUSTOMER_LIST',
+    industry: 'Retail',
+    subindustry: 'E-commerce'
+  }
+};
+
+export default function ParameterTestPage() {
+  const router = useRouter();
+  const [formData, setFormData] = useState<Preset>(PRESETS.preset1);
+  const [generatedUrl, setGeneratedUrl] = useState<string>('');
+
+  const loadPreset = (presetKey: keyof typeof PRESETS) => {
+    setFormData(PRESETS[presetKey]);
+    generateUrl(PRESETS[presetKey]);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const generateUrl = (data: Preset = formData) => {
+    const params = new URLSearchParams();
+    Object.entries(data).forEach(([key, value]) => {
+      if (value) {
+        params.append(key, value);
+      }
+    });
+    const url = `/customize?${params.toString()}`;
+    setGeneratedUrl(url);
+    return url;
+  };
+
+  const handleRedirect = () => {
+    const url = generateUrl();
+    router.push(url);
+  };
+
+  const resetForm = () => {
+    setFormData(PRESETS.preset1);
+    setGeneratedUrl('');
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="min-h-screen bg-[#f5f5f5] p-5">
+      <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-6">
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">
+          Fieldmobi Parameter Test Tool
+        </h1>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+        <div className="flex gap-3 mb-6 flex-wrap">
+          {Object.keys(PRESETS).map((preset) => (
+            <button
+              key={preset}
+              onClick={() => loadPreset(preset as keyof typeof PRESETS)}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-semibold transition-colors"
+            >
+              Load {preset.charAt(0).toUpperCase() + preset.slice(1)}
+            </button>
+          ))}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <form className="space-y-4">
+          {Object.entries(formData).map(([key, value]) => (
+            <div key={key} className="form-group">
+              <label htmlFor={key} className="block text-sm font-semibold text-gray-700 mb-1">
+                {key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}:
+              </label>
+              <input
+                type="text"
+                id={key}
+                name={key}
+                value={value}
+                onChange={handleInputChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder={`Enter ${key.replace(/_/g, ' ')}`}
+              />
+            </div>
+          ))}
+
+          <div className="flex gap-3 mt-6">
+            <button
+              type="button"
+              onClick={handleRedirect}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded font-semibold transition-colors"
+            >
+              Launch Chat Interface
+            </button>
+            <button
+              type="button"
+              onClick={() => generateUrl()}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded font-semibold transition-colors"
+            >
+              Generate URL
+            </button>
+            <button
+              type="button"
+              onClick={resetForm}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded font-semibold transition-colors"
+            >
+              Reset
+            </button>
+          </div>
+        </form>
+
+        {generatedUrl && (
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Generated URL:</h3>
+            <div className="bg-gray-100 p-3 rounded font-mono text-sm break-all">
+              {generatedUrl}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

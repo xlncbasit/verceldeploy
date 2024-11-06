@@ -48,7 +48,15 @@ export async function POST(request: Request) {
 
     // Update configuration
     const configPath = dirManager.getUserConfigFilePath(params, 'config');
-    await ConfigWriter.writeCSV(configPath, updatedConfig);
+    if (updatedConfig) {
+      await ConfigWriter.writeCSV(configPath, updatedConfig);
+  } else {
+      // Handle the case where updatedConfig is undefined
+      // For example, you might log an error, throw an exception, or initialize it to an empty array
+      console.error('Updated configuration is undefined.');
+      // Optionally, you can initialize it to an empty array if that's appropriate
+      // await ConfigWriter.writeCSV(configPath, []);
+  }
 
     // Update codesets if needed
     if (codesetUpdates) {

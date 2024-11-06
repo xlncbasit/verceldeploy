@@ -163,6 +163,7 @@ Please provide your response in the specified format, maintaining the existing c
     explanation: string;
     codesetUpdates?: Record<string, string[]>;
   } {
+    console.log("Claude response:", response)
     // Split response into sections
     const sections = response.split('\n\n').filter(Boolean);
     

@@ -5,6 +5,8 @@ import type { ConfigParams, ConfigData } from '@/types';
 export class ClaudeAPI {
   private client: Anthropic;
   private model = 'claude-3-sonnet-20240229';
+  private maxRetries = 2;
+  private timeout = 45000; // 45 seconds
   private systemInstructions: string;
 
   constructor() {
@@ -13,7 +15,9 @@ export class ClaudeAPI {
     }
 
     this.client = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      maxRetries: this.maxRetries,
+      timeout: this.timeout
     });
 
     this.systemInstructions = `You are serving as an expert ERP Configuration Assistant, specifically designed to help users customize and optimize their ERP module configurations within a Next.js-based setup tool. You have deep expertise in:

@@ -1,0 +1,16 @@
+{
+    "version": 2,
+    "buildCommand": "next build",
+    "installCommand": "npm install",
+    "framework": "nextjs",
+    "outputDirectory": ".next",
+    "env": {
+      "VERCEL": "1"
+    },
+    "functions": {
+      "api/**/*": {
+        "memory": 1024,
+        "maxDuration": 10
+      }
+    }
+  }

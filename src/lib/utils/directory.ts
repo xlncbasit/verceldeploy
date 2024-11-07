@@ -1,4 +1,3 @@
-// src/lib/utils/directory.ts
 import fs from 'fs/promises';
 import path from 'path';
 import type { ConfigParams, ConfigResponse } from '@/types';
@@ -10,10 +9,16 @@ export class DirectoryManager {
   private baseConfigDir: string;
 
   constructor() {
-    this.baseDir = process.cwd();
-    this.userConfigDir = path.join(this.baseDir, 'data/users');
-    this.industryConfigDir = path.join(this.baseDir, 'data/configurations/industry-configurations');
-    this.baseConfigDir = path.join(this.baseDir, 'data/configurations/base-configurations');
+    // For Vercel, use /tmp for user configs, but keep base and industry configs in cwd
+    const isVercel = process.env.VERCEL === '1';
+    
+    // Base directory for user configurations
+    this.baseDir = isVercel ? '/tmp' : process.cwd();
+    this.userConfigDir = path.join(this.baseDir, 'data', 'users');
+
+    // Base and industry configs always use cwd as they're part of the codebase
+    this.industryConfigDir = path.join(process.cwd(), 'data', 'configurations', 'industry-configurations');
+    this.baseConfigDir = path.join(process.cwd(), 'data', 'configurations', 'base-configurations');
   }
 
   /**
@@ -22,6 +27,13 @@ export class DirectoryManager {
   public getUserConfigFilePath(params: ConfigParams, fileType: 'config' | 'codesetvalues'): string {
     const { orgKey, moduleKey } = params;
     const fileName = fileType === 'config' ? 'config.csv' : 'codesetvalues.csv';
+    
+    // In Vercel, flatten the directory structure to avoid nested dirs in /tmp
+    if (process.env.VERCEL === '1') {
+      return path.join(this.userConfigDir, `${orgKey}_${moduleKey}_${fileName}`);
+    }
+    
+    // In development, maintain the original directory structure
     return path.join(this.userConfigDir, orgKey, moduleKey, fileName);
   }
 
@@ -29,18 +41,12 @@ export class DirectoryManager {
    * Initialize directory structure
    */
   public async initializeDirectories(): Promise<void> {
-    const directories = [
-      this.userConfigDir,
-      this.industryConfigDir,
-      this.baseConfigDir
-    ];
-
-    for (const dir of directories) {
-      try {
-        await fs.access(dir);
-      } catch {
-        await fs.mkdir(dir, { recursive: true });
-      }
+    try {
+      // Only create user directory as it's the only writable one
+      await fs.mkdir(this.userConfigDir, { recursive: true });
+    } catch (error) {
+      console.error('Error initializing directories:', error);
+      throw new Error('Failed to initialize directories');
     }
   }
 
@@ -67,7 +73,6 @@ export class DirectoryManager {
     const userPath = this.getUserConfigFilePath(params, 'config');
     try {
       await fs.access(userPath);
-      console.log(`Configuration fetched from user path: ${userPath}`);
       return {
         exists: true,
         configPath: userPath,
@@ -79,7 +84,6 @@ export class DirectoryManager {
     const industryPath = path.join(this.industryConfigDir, industry, moduleKey, 'config.csv');
     try {
       await fs.access(industryPath);
-      console.log(`Configuration fetched from industry path: ${industryPath}`);
       return {
         exists: true,
         configPath: industryPath,
@@ -91,7 +95,6 @@ export class DirectoryManager {
     const basePath = path.join(this.baseConfigDir, moduleKey, 'config.csv');
     try {
       await fs.access(basePath);
-      console.log(`Configuration fetched from base path: ${basePath}`);
       return {
         exists: true,
         configPath: basePath,
@@ -101,36 +104,68 @@ export class DirectoryManager {
       throw new Error(`No configuration found for module: ${moduleKey}`);
     }
   }
-  
 
   /**
-   * Create user directory and initialize with configurations
+   * Create user configuration from template
    */
   public async createUserDirectory(params: ConfigParams): Promise<void> {
     const { orgKey, moduleKey, industry } = params;
-    const userDir = path.join(this.userConfigDir, orgKey, moduleKey);
-    await fs.mkdir(userDir, { recursive: true });
+    
+    // In Vercel, we don't create nested directories
+    if (process.env.VERCEL === '1') {
+      await this.initializeDirectories();
+    } else {
+      // In development, create the full directory structure
+      const userDir = path.join(this.userConfigDir, orgKey, moduleKey);
+      await fs.mkdir(userDir, { recursive: true });
+    }
 
     const files = ['config.csv', 'codesetvalues.csv'];
     
     for (const file of files) {
-      const destPath = path.join(userDir, file);
+      const destPath = this.getUserConfigFilePath(params, file === 'config.csv' ? 'config' : 'codesetvalues');
       
       try {
-        // Try industry config first
+        // Try to copy from industry configuration first
         const industryPath = path.join(this.industryConfigDir, industry, moduleKey, file);
-        await fs.copyFile(industryPath, destPath);
+        const industryContent = await fs.readFile(industryPath, 'utf-8');
+        await fs.writeFile(destPath, industryContent, 'utf-8');
       } catch {
-        // Fallback to base config
         try {
+          // Fallback to base configuration
           const basePath = path.join(this.baseConfigDir, moduleKey, file);
-          await fs.copyFile(basePath, destPath);
+          const baseContent = await fs.readFile(basePath, 'utf-8');
+          await fs.writeFile(destPath, baseContent, 'utf-8');
         } catch (error) {
           console.error(`Failed to copy ${file} from base configuration:`, error);
           // Create empty file if neither exists
           await fs.writeFile(destPath, 'key,value\n', 'utf-8');
         }
       }
+    }
+  }
+
+  /**
+   * Helper method to read a configuration file
+   */
+  public async readConfigFile(filePath: string): Promise<string> {
+    try {
+      return await fs.readFile(filePath, 'utf-8');
+    } catch (error) {
+      console.error('Error reading configuration file:', error);
+      throw new Error('Failed to read configuration file');
+    }
+  }
+
+  /**
+   * Helper method to write a configuration file
+   */
+  public async writeConfigFile(filePath: string, content: string): Promise<void> {
+    try {
+      await fs.writeFile(filePath, content, 'utf-8');
+    } catch (error) {
+      console.error('Error writing configuration file:', error);
+      throw new Error('Failed to write configuration file');
     }
   }
 }

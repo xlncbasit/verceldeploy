@@ -39,5 +39,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+!data/
+!data/configurations/
 !data/configurations/base-configurations/
 !data/configurations/industry-configurations/
+!data/users/

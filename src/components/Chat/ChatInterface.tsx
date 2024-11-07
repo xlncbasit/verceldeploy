@@ -1,3 +1,4 @@
+//src/components/Chat/ChatInterface.tsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -9,12 +10,21 @@ interface Message {
   content: string;
 }
 
+interface ConfigState {
+  currentConfig: any;
+  proposedConfig: any;
+  requirementsSummary: string;
+}
+
 export default function ChatInterface({ params }: { params: ConfigParams }) {
   const [mounted, setMounted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<'requirements' | 'review'>('requirements');
+  const [configState, setConfigState] = useState<ConfigState | null>(null);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const avatarImages = {
@@ -22,7 +32,6 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
     assistant: '/images/fieldmo.png',
   };
 
-  // Scroll to bottom whenever messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -31,9 +40,49 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
     setMounted(true);
     setMessages([{
       role: 'assistant',
-      content: `Welcome! I'm your AI assistant for the ${params.moduleKey} module. How can I help you with your customization?`
+      content: `Welcome! I'm your AI assistant for the ${params.moduleKey} module. Please tell me about your customization requirements, and once you've shared all the necessary information, click "Finalize Customization" to proceed with the changes.`
     }]);
   }, [params.moduleKey]);
+
+  const handleFinalizeCustomization = async () => {
+    setIsTyping(true);
+    try {
+      const response = await fetch('/api/chat/finalize', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ 
+          conversationHistory: messages,
+          params 
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process customization');
+      }
+
+      const data = await response.json();
+      setConfigState({
+        currentConfig: data.currentConfig,
+        proposedConfig: data.proposedConfig,
+        requirementsSummary: data.summary
+      });
+      
+      setPhase('review');
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `Based on our conversation, I've prepared the customization changes. Here's a summary of what will be modified:\n\n${data.summary}\n\nWould you like to proceed with these changes? Please respond with 'yes' to confirm or 'no' to make adjustments.`
+      }]);
+      setAwaitingConfirmation(true);
+    } catch (error) {
+      console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setIsTyping(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,29 +95,61 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
     setIsTyping(true);
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ 
-          message: userMessage, 
-          params 
-        })
-      });
+      if (phase === 'review' && awaitingConfirmation) {
+        const response = userMessage.toLowerCase();
+        if (response === 'yes') {
+          // Process final confirmation
+          const finalResponse = await fetch('/api/chat/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              confirmed: true,
+              configState,
+              params 
+            })
+          });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to process request');
+          if (!finalResponse.ok) throw new Error('Failed to apply changes');
+
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: 'Great! The customization has been successfully applied.'
+          }]);
+          setAwaitingConfirmation(false);
+        } else if (response === 'no') {
+          // Reset to requirements gathering phase
+          setPhase('requirements');
+          setConfigState(null);
+          setAwaitingConfirmation(false);
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: "I understand. Let's revisit your requirements. Please tell me what needs to be adjusted."
+          }]);
+        } else {
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: "Please respond with 'yes' to confirm the changes or 'no' to make adjustments."
+          }]);
+        }
+      } else {
+        // Regular conversation flow
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: userMessage, params })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to process request');
+        }
+
+        const data = await response.json();
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: data.response 
+        }]);
       }
-
-      const data = await response.json();
-      
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: data.response 
-      }]);
     } catch (error) {
       console.error('Error:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
@@ -103,6 +184,13 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
               <span className="param-value">{value || 'Not specified'}</span>
             </div>
           ))}
+          <button 
+            className="finalize-button" 
+            onClick={handleFinalizeCustomization}
+            disabled={phase === 'review' || isTyping}
+          >
+            Finalize Customization
+          </button>
         </div>
 
         <div className="main-container">
@@ -159,7 +247,10 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Type your message..."
+                placeholder={phase === 'review' && awaitingConfirmation ? 
+                  "Type 'yes' to confirm or 'no' to make adjustments" : 
+                  "Type your message..."
+                }
                 disabled={isTyping}
               />
               <button type="submit" disabled={isTyping || !inputValue.trim()}>

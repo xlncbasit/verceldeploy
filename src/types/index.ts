@@ -37,3 +37,12 @@ export interface ConfigParams {
     explanation: string;
     codesetUpdates?: Record<string, string[]>;
   }
+
+  export interface ConfigState {
+    currentConfig: ConfigData[];
+    proposedConfig: {
+        config: ConfigData[];
+        codesetUpdates?: Record<string, string[]>;
+    };
+    requirementsSummary: string;
+}

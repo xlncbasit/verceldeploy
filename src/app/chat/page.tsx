@@ -1,3 +1,4 @@
+//src/app/chat/page.tsx
 "use client";
 import type { Metadata } from 'next';
 import ChatWrapper from '@/components/Chat/ChatWrapper';

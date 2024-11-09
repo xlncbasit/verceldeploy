@@ -167,7 +167,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
   return (
     <div className="container">
       <header className="header">
-        <div className="logo">fieldmobi.ai</div>
+        <div className="logo">fieldmobeeeeeee</div>
         {error && (
           <div className="error-banner">
             {error}

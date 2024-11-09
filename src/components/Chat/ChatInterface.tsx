@@ -1,6 +1,3 @@
-//src/components/Chat/ChatInterface.tsx
-'use client';
-
 import { useState, useEffect, useRef } from 'react';
 import { ConfigParams } from '@/types';
 import '@/styles/chat.css';
@@ -40,7 +37,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
     setMounted(true);
     setMessages([{
       role: 'assistant',
-      content: `Welcome! I'm your AI assistant for the ${params.moduleKey} module. Please tell me about your customization requirements, and once you've shared all the necessary information, click "Finalize Customization" to proceed with the changes.`
+      content: `Welcome! I'm your AI assistant for the ${params.moduleKey} module. Please tell me about your customization requirements.`
     }]);
   }, [params.moduleKey]);
 
@@ -98,7 +95,6 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
       if (phase === 'review' && awaitingConfirmation) {
         const response = userMessage.toLowerCase();
         if (response === 'yes') {
-          // Process final confirmation
           const finalResponse = await fetch('/api/chat/confirm', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -117,7 +113,6 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
           }]);
           setAwaitingConfirmation(false);
         } else if (response === 'no') {
-          // Reset to requirements gathering phase
           setPhase('requirements');
           setConfigState(null);
           setAwaitingConfirmation(false);
@@ -132,7 +127,6 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
           }]);
         }
       } else {
-        // Regular conversation flow
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -164,6 +158,11 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
 
   if (!mounted) return null;
 
+  // Function to check if the last message is from the assistant
+  const isLastMessageFromAssistant = () => {
+    return messages.length > 0 && messages[messages.length - 1].role === 'assistant';
+  };
+
   return (
     <div className="container">
       <header className="header">
@@ -184,13 +183,6 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
               <span className="param-value">{value || 'Not specified'}</span>
             </div>
           ))}
-          <button 
-            className="finalize-button" 
-            onClick={handleFinalizeCustomization}
-            disabled={phase === 'review' || isTyping}
-          >
-            Finalize Customization
-          </button>
         </div>
 
         <div className="main-container">
@@ -239,6 +231,17 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
                   </div>
                 </div>
               )}
+              {isLastMessageFromAssistant() && phase === 'requirements' && !isTyping && messages.length > 1 && (
+                <div className="finalize-button-container">
+                  <button 
+                    className="finalize-button-chat"
+                    onClick={handleFinalizeCustomization}
+                    disabled={isTyping || phase !== 'requirements'}
+                  >
+                    Deploy
+                  </button>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
 
@@ -254,6 +257,18 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
                 disabled={isTyping}
               />
               <button type="submit" disabled={isTyping || !inputValue.trim()}>
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                >
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
                 Send
               </button>
             </form>

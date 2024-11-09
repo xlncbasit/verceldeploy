@@ -41,12 +41,12 @@ export async function POST(request: Request) {
 
     // Update configuration
     const configPath = dirManager.getUserConfigFilePath(params, 'config');
-    await ConfigWriter.writeCSV(configPath, configState.proposedConfig.config);
+    // await ConfigWriter.writeCSV(configPath, configState.proposedConfig.config);
 
     // If there are codeset updates in the proposed config, handle them
     if (configState.proposedConfig.codesetUpdates) {
       const codesetPath = dirManager.getUserConfigFilePath(params, 'codesetvalues');
-      await ConfigWriter.updateCodesetValues(codesetPath, configState.proposedConfig.codesetUpdates);
+      // await ConfigWriter.updateCodesetValues(codesetPath, configState.proposedConfig.codesetUpdates);
     }
 
     return NextResponse.json({

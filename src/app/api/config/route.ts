@@ -89,7 +89,7 @@ export async function PUT(request: Request) {
     
 
     const configPath = dirManager.getUserConfigFilePath(params, 'config');
-    await configWriter.writeCSV(params, config);
+    // await configWriter.writeCSV(params, config);
 
     return NextResponse.json({ success: true });
 

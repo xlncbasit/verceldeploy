@@ -1,18 +1,18 @@
+// src/components/RedirectComponent.tsx
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function RedirectComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    // Default parameters
+   
+
     const params = new URLSearchParams();
-    
-    // Add the default parameters if none are provided in URL
-    
 
     // Use URL parameters if they exist, otherwise use defaults
     
@@ -21,7 +21,6 @@ export default function RedirectComponent() {
     router.push(`/customize?${params.toString()}`);
   }, [router, searchParams]);
 
-  // Show loading state while redirecting
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">

@@ -1,11 +1,11 @@
 import { Suspense } from 'react';
-import RedirectComponent from '@/components/RedirectComponent';
+import PostRedirect from '@/components/PostRedirect';
 import Loading from '@/components/ui/loading';
 
 export default function Home() {
   return (
     <Suspense fallback={<Loading />}>
-      <RedirectComponent />
+      <PostRedirect />
     </Suspense>
   );
 }

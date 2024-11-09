@@ -18,13 +18,13 @@ export class ConfigParser {
     }
   }
 
-  static formatConfigForClaude(config: ConfigData[]): string {
+/*   static formatConfigForClaude(config: ConfigData[]): string {
     return config.map(row => {
       return Object.entries(row)
         .map(([key, value]) => `${key}: ${value}`)
         .join(', ');
     }).join('\n');
-  }
+  } */
 
   static parseClaudeResponse(response: string): ConfigData[] {
     const lines = response.split('\n').filter(line => line.trim());

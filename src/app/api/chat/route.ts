@@ -1,8 +1,9 @@
 // src/app/api/chat/route.ts
 import { NextResponse } from 'next/server';
 import { ClaudeAPI } from '@/lib/claude/api';
-import type { ConfigParams } from '@/types';
+import type { ConfigParams, ConfigFiles } from '@/types';
 import { ConfigValidator } from '@/lib/utils/validation';
+import { DirectoryManager } from '@/lib/utils/directory';
 
 // Create a timeout promise
 const timeout = (ms: number) => new Promise((_, reject) => {
@@ -47,12 +48,15 @@ export async function POST(request: Request) {
     }
 
     // Initialize Claude API
+    const dirManager = new DirectoryManager();
     const claude = new ClaudeAPI();
-    
+    const { configContent, codesetContent }: ConfigFiles = 
+      await dirManager.getRawConfigurations(params);
+
     // Process with Claude with timeout
     const response = await Promise.race([
-      claude.processConversation(message, params),
-      timeout(50000) // 50s timeout for Claude API
+      claude.processConversation(message, params, configContent, codesetContent,),
+      timeout(500000) // 50s timeout for Claude API
     ]) as ClaudeResponse;
 
     return NextResponse.json({

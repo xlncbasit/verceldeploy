@@ -6,6 +6,12 @@ export interface ConfigParams {
     industry: string;
     subIndustry: string;
   }
+
+  export interface ConfigFiles {
+    type: 'user' | 'industry' | 'base';
+    configContent: string;
+    codesetContent: string;
+  }
   
   export interface ChatMessage {
     role: 'user' | 'assistant' | 'system';

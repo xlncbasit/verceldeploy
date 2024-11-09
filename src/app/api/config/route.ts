@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const dirManager = new DirectoryManager();
     
     // Initialize directories if needed
-    await dirManager.initializeDirectories();
+    await dirManager.ensureDirectories();
 
     // Check for existing configuration
     const hasConfig = await dirManager.checkUserConfig(params.orgKey, params.moduleKey);
@@ -36,6 +36,8 @@ export async function POST(request: Request) {
     // Get configuration path and load configuration
     const configResponse = await dirManager.getConfigurationPath(params);
     const config = await ConfigParser.parseCSV(configResponse.configPath);
+
+    console.log('Fetched configuration: ', config);
 
     return NextResponse.json({
       exists: hasConfig,
@@ -83,8 +85,11 @@ export async function PUT(request: Request) {
     }
 
     // Get user config path and write updated configuration
+    const configWriter = new ConfigWriter();
+    
+
     const configPath = dirManager.getUserConfigFilePath(params, 'config');
-    await ConfigWriter.writeCSV(configPath, config);
+    await configWriter.writeCSV(params, config);
 
     return NextResponse.json({ success: true });
 

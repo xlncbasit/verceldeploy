@@ -1,12 +1,13 @@
 //src/lib/claude/api.ts
 import { Anthropic } from '@anthropic-ai/sdk';
-import type { ConfigParams, ConfigData } from '@/types';
+import type { ConfigParams } from '@/types';
+import { ConfigWriter } from '../config/writer';
 
 export class ClaudeAPI {
   private client: Anthropic;
-  private model = 'claude-3-sonnet-20240229';
-  private maxRetries = 2;
-  private timeout = 45000; // 45 seconds
+  private model = 'claude-3-5-sonnet-20241022';
+  private maxRetries = 3;
+  private timeout = 90000;
   private systemInstructions: string;
 
   constructor() {
@@ -20,475 +21,577 @@ export class ClaudeAPI {
       timeout: this.timeout
     });
 
-    this.systemInstructions = `You are serving as an expert ERP Configuration Assistant, specifically designed to help users customize and optimize their ERP module configurations within a Next.js-based setup tool. You have deep expertise in:
-- ERP systems and business processes
-- Industry-specific configurations and best practices
-- CSV configuration management
-- Next.js and React development
-- TypeScript and modern web development practices
-
-# Primary Objectives
-1. Guide users through ERP module customization
-2. Translate business requirements into technical configurations
-3. Ensure configuration validity and best practices
-4. Provide clear explanations and rationale for changes
-
-# Interaction Guidelines
-1. Requirements Gathering Phase:
-   - Focus on understanding user needs
-   - Ask clarifying questions
-   - Explain possibilities without making changes
-   - Help users articulate their requirements clearly
-
-2. Configuration Phase:
-   - Only triggered during finalization
-   - Produce precise, validated configuration changes
-   - Maintain exact CSV structure
-   - Provide clear summary of changes
-
-# Configuration Context
-Base configuration paths:
-- Base: /data/configurations/base-configurations/[module.key]/config.csv
-- Industry: /data/configurations/industry-configurations/[industry]/[module.key]/
-- User: /data/users/[org.key]/[module.key]/
-
-# Safety and Compliance
-1. Always maintain:
-   - Data integrity
-   - Configuration consistency
-   - Audit trail recommendations
-   - Compliance with industry standards
-
-2. Never:
-   - Suggest changes that could break existing integrations
-   - Bypass validation rules
-   - Compromise security measures
-   - Ignore industry regulations`;
+    this.systemInstructions = this.getSystemInstructions();
   }
 
-  /**
-   * Process conversation during requirements gathering phase
-   */
+  private getSystemInstructions(): string {
+    return `You are an expert ERP Configuration Assistant with deep specialization in enterprise systems customization. Your purpose is to help organizations optimize their ERP modules while ensuring system integrity and following best practices.
+
+
+# CORE CAPABILITIES
+
+
+1. Configuration Expertise
+   - ERP module customization
+   - System integration
+   - Business process optimization
+   - Data structure management
+   - Security and compliance
+   - Performance optimization
+
+
+2. Industry Knowledge
+   - Vertical-specific best practices
+   - Compliance requirements
+   - Standard operating procedures
+   - Integration patterns
+   - Common customization needs
+
+
+3. Technical Skills
+   - Configuration management
+   - Data modeling
+   - Field customization
+   - Codeset management
+   - Display parameter optimization
+   - Validation rule setup
+
+
+# INTERACTION MODES
+
+
+1. REQUIREMENTS GATHERING MODE
+   When engaged in conversation:
+   - Use professional yet approachable tone
+   - Ask focused questions
+   - Validate understanding
+   - Share relevant examples
+   - Provide industry insights
+   - Document specific needs
+   - Flag potential issues
+
+
+2. CONFIGURATION MODE
+   When processing changes:
+   - Follow exact CSV structure
+   - Maintain data integrity
+   - Validate all modifications
+   - Ensure compliance
+   - Verify relationships
+
+
+
+
+# RESPONSE FORMATS
+
+
+1. Conversation Response:
+   Structure: 
+   
+   - Provide insights
+   - Share best practices
+   - Note concerns
+   - Ask follow-ups (max 2)
+
+
+2. Configuration Response:
+   Must include these sections:
+
+
+   a) CONFIGURATION:
+   [Complete CSV with:
+    - All columns/rows
+    - Empty cells preserved
+    - Exact structure
+    - Proper formatting]
+
+
+   b) CODESETS (if needed):
+   [CSV format:
+    codeset,value
+    no headers needed]
+
+
+# VALIDATION REQUIREMENTS
+
+
+1. Structure Validation:
+   - Field integrity
+   - Column count
+   - Data types
+   - Required fields
+   - Relationships
+
+
+2. Business Rules:
+   - Process flows
+   - Conditional logic
+   - Report accuracy
+   - Integration impact
+
+
+3. Display Logic:
+   - Parameter sequence
+   - UI flow
+   - Mobile compatibility
+   - Access controls
+
+
+# ERROR PREVENTION
+
+
+1. Never:
+   
+   - Break data relationships
+   - Compromise security
+   - Bypass validations
+   - Remove required fields
+
+
+2. Always:
+   - Validate changes
+   - Check dependencies
+   - Document modifications
+   - Maintain integrity
+   - Consider impact
+
+
+# BEST PRACTICES
+
+
+1. Configuration:
+   - Follow naming conventions
+   - Use standard patterns
+   - Maintain scalability
+   - Consider performance
+   - Document changes
+
+
+2. Security:
+   - Respect access levels
+   - Maintain audit trails
+   - Protect sensitive data
+   - Follow compliance rules
+   - Validate permissions
+
+
+3. Integration:
+   - Check dependencies
+   - Verify data flow
+   - Test relationships
+   - Maintain consistency
+   - Document connections
+
+
+
+# OUTPUT SPECIFICATIONS
+
+
+1. CSV Structure:
+   - Keep all columns
+   - Maintain formatting
+   - Preserve empty cells
+   - Follow sequence
+   - Match original
+
+
+
+
+Remember:
+- Focus on business value
+- Maintain system integrity
+- Follow best practices
+- Validate thoroughly`;
+}
+
+
   async processConversation(
-    message: string,
-    params: ConfigParams
+    message: string, 
+    params: ConfigParams, 
+    rawConfig: string, 
+    rawCodesets: string
   ): Promise<{ reply: string }> {
     try {
-      const conversationPrompt = `${this.systemInstructions}
-  
-  You are in the CONVERSATION PHASE, helping understand requirements for the ${params.moduleKey} module configuration.
-  Industry: ${params.industry}
-  Sub-Industry: ${params.subIndustry}
-  
-  Guidelines for your responses:
-  1. Use a natural, friendly tone
-  2. Format your response clearly with appropriate line breaks and spacing
-  3. Ask a maximum of two focused questions per response
-  4. If explaining options or possibilities, use bullet points for clarity
-  5. Keep responses concise but informative
-  6. Don't provide specific configuration values yet
-  
-  User's message: "${message}"
-  
-  Remember to:
-  - Format your response for readability
-  - Use bullet points when listing options
-  - Add line breaks between different parts of your response
-  - Ask no more than two questions
-  - Focus on understanding requirements before suggesting solutions`;
-  
-      const response = await this.client.messages.create({
-        model: this.model,
-        max_tokens: 4096,
-        temperature: 0.7,
-        messages: [
-          {
-            role: 'user',
-            content: conversationPrompt
-          }
-        ]
-      });
-  
-      if (!response.content || response.content.length === 0) {
-        throw new Error('No response received from Claude');
-      }
-  
-      const content = response.content[0];
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type from Claude');
-      }
-  
-      // Process the response to ensure proper formatting
-      const formattedReply = this.formatConversationalResponse(content.text);
-  
-      return {
-        reply: formattedReply
-      };
-  
-    } catch (error) {
-      console.error('Error in conversation processing:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Format conversational response for better readability
-   */
-  private formatConversationalResponse(text: string): string {
-    // Remove any excessive blank lines
-    let formatted = text.replace(/\n{3,}/g, '\n\n');
-    
-    // Ensure bullet points are properly spaced
-    formatted = formatted.replace(/^[•-]\s*/gm, '\n• ');
-    
-    // Ensure questions are on new lines and properly spaced
-    formatted = formatted.replace(/([.!?])\s+([A-Z])/g, '$1\n\n$2');
-    
-    // Clean up any leftover spacing issues
-    formatted = formatted.trim().replace(/\n{3,}/g, '\n\n');
-  
-    // Add spacing around bullet point sections
-    formatted = formatted.replace(/(\n• .*?)(\n[^•])/g, '$1\n\n$2');
-  
-    return formatted;
-  }
+      const conversationPrompt = `You are a knowledgeable and friendly ERP consultant helping organizations optimize their systems. You're currently assisting with the ${params.moduleKey} module for a ${params.industry} organization, specifically in ${params.subIndustry}.
 
-  /**
- * Process finalization phase to generate configuration changes
- */
-async processFinalization(
-  requirementsSummary: string,
-  currentConfig: ConfigData[],
-  params: ConfigParams
-): Promise<{
-  updatedConfig: ConfigData[];
-  explanation: string;
-  codesetUpdates?: Record<string, string[]>;
-}> {
-  try {
-    const configContext = this.formatConfigContext(currentConfig);
-    const finalizationPrompt = `${this.systemInstructions}
+Your personality:
+- Friendly yet professional
+- Clear and concise
+- Practical and solution-focused
+- Patient and attentive
+- Short and crisp replies
 
-You are in FINALIZATION PHASE. Your task is to convert the gathered requirements into specific configuration changes.
-
+Conversation Context:
 Module: ${params.moduleKey}
 Industry: ${params.industry}
 Sub-Industry: ${params.subIndustry}
 
-Current Configuration Structure:
-${JSON.stringify(currentConfig, null, 2)}
+Guide the conversation naturally:
+Use bullet points for lists
+   • Keep paragraphs short (2-3 lines max)
+   • Bold important points using **text**
+   • Use clear sections with headings
+   • Add line breaks between sections
 
-Requirements Summary:
-${requirementsSummary}
+For first interaction:
+Warmly welcome them and ask if they'd like to explore specific changes to their current setup or if they'd prefer recommendations based on industry best practices. Share a brief example relevant to their industry to make it more relatable.
 
-IMPORTANT: Your response must maintain the EXACT same structure as the current configuration.
-1. Each field in the current configuration must exist in your response
-2. Field names must match exactly
-3. Data types must match (string, number, boolean)
-4. Format your response in this exact structure:
+For specific changes path:
+- Listen to their needs
+- Ask clarifying questions naturally
+- Share relevant examples from similar cases
+- Suggest complementary improvements
+- Guide them through implications
+
+For industry recommendations path:
+- Share relevant examples
+- Suggest practical field types with real use cases
+- Relate suggestions to their business context
+- Build on their responses
+- Keep suggestions focused and achievable
+
+
+
+User's Message: "${message}"
+
+Remember to:
+- Maintain a natural conversation flow
+- Share relevant real-world examples
+- Build on previous discussions
+- Keep technical details clear but approachable
+- Guide without being overly prescriptive
+
+Stay friendly and professional while keeping the discussion focused on achieving their goals.`;
+
+
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 4096,
+        temperature: 0.7,
+        messages: [{ role: 'user', content: conversationPrompt }]
+      });
+
+      return {
+        reply: this.formatConversationalResponse(this.extractContent(response))
+      };
+
+    } catch (error) {
+      console.error('Error in conversation:', error);
+      throw error;
+    }
+  }
+
+  async processFinalization(
+    requirementsSummary: string,
+    rawConfig: string,
+    rawCodesets: string,
+    params: ConfigParams
+  ): Promise<{
+    configuration: string;
+    
+    codesets: string;
+  }> {
+    try {
+      const finalizationPrompt = `${this.systemInstructions}
+
+      CRITICAL INSTRUCTIONS:
+You MUST respond with ONLY these sections, exactly as shown:
 
 CONFIGURATION:
-key1: value1, key2: value2, key3: value3
-(One line per configuration entry, keys and values separated by commas)
-
-EXPLANATION:
-(Your explanation of changes)
+[Complete CSV content preserving structure and format]
 
 CODESETS:
-(Any codeset updates if needed)`;
+[Complete CSV content for codesets if modified]
 
-    const response = await this.client.messages.create({
-      model: this.model,
-      max_tokens: 4096,
-      temperature: 0.2,
-      messages: [
-        {
-          role: 'user',
-          content: finalizationPrompt
+No other text, explanations, or sections are allowed in the response.
+
+FINALIZATION PHASE:
+Module: ${params.moduleKey}
+Industry: ${params.industry}
+Sub-Industry: ${params.subIndustry}
+Organization: ${params.orgKey}
+
+CURRENT CONFIGURATION:
+${rawConfig}
+
+CURRENT CODESETS:
+${rawCodesets}
+
+REQUIREMENTS SUMMARY:
+${requirementsSummary}
+
+PROCESSING INSTRUCTIONS:
+1. Analyze requirements thoroughly
+2. Apply customizations following all rules
+3. Maintain NEVER fields unchanged
+4. Update Customization column labels
+5. Verify all relationships
+6. Validate display parameters
+7. Document all changes clearly
+
+# Configuration Structure Rules:
+
+1. MANDATORY HEADER CHANGES:
+   - Cell B2: Change "Application" to "Customization"
+   - Cell C2: Insert ${params.orgKey}
+   
+
+2. CUSTOMIZATION COLUMN RULES (Previously "Remarks"):
+   - NEVER: Only change the sequential numbering of fields with NEVER label
+   - CHANGE: Apply to any customized fields
+   - NONE: Use for unchanged fields (except those marked NEVER)
+   - REMOVE: For fields to be deprecated (don't delete)
+   - NEW: For newly added fields
+
+3. FIELD MODIFICATION GUIDELINES:
+   - Preserve all original fields
+   - Add new fields only at the end of existing fields
+   - Maintain field code sequence (fieldCode001, fieldCode002, etc.)
+   - Keep all column headers unchanged
+   - Preserve CSV structure and formatting
+
+4. LIST TYPE HANDLING:
+   - Two types allowed: Fixed or Codeset
+   - For Codeset:
+     * Use existing codeset structure
+     * Can create new codesets following same format
+   - For Fixed:
+     * Maintain comma-separated value format
+     * Ensure values are valid for field type
+
+5. DISPLAY PARAMETERS:
+   - Maintain accurate numbering for:
+     * Search
+     * Sort
+     * Filter
+     * Mobile
+     * Detail
+     * Create
+     * Edit
+     * Select
+     * List
+     * Map
+     * Card
+     * Report
+   - Numbers must be sequential and non-duplicating within each category
+   - Preserve existing numbering logic
+
+6. FIELD TYPE INTEGRITY:
+   - Maintain consistency with field type (KEY, CAT, TYP, NAM, etc.)
+   - Ensure field types match data validation rules
+   - Preserve system field types (SYS_*)
+
+7. LINK AND UPDATE SETUP:
+   - Preserve existing relationships
+   - Maintain field dependencies
+   - Keep refresh logic intact
+
+
+Provide complete response with:
+1. Full configuration CSV
+
+2. Updated codesets (if needed)
+
+Ensure:
+- Exact CSV structure preserved
+- All validation rules followed
+- System integrity maintained
+- Business logic respected`;
+
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 4096,
+        temperature: 0.2,
+        messages: [{ role: 'user', content: finalizationPrompt }]
+      });
+
+      console.log('Raw response:', response);
+      const content = this.extractContent(response);
+      const sections = this.parseResponse(content);
+
+      const configWriter = new ConfigWriter();
+      await configWriter.writeFiles(params, sections);
+
+      
+      
+      this.validateResponse(sections, rawConfig, rawCodesets);
+
+      return {
+        configuration: sections.configuration,
+        
+        codesets: sections.codesets || rawCodesets
+      };
+
+    } catch (error) {
+      console.error('Error in finalization:', error);
+      throw error;
+    }
+  }
+
+  public parseResponse(response: string): {
+    configuration: string;
+    codesets?: string;
+  } {
+    // Initialize empty results
+    let configuration = '';
+    let codesets = undefined;
+  
+    try {
+      // Clean up the response text
+      const cleanText = response
+        .replace(/^\s*[\[\]]\s*/gm, '')  // Remove brackets from section markers
+        .replace(/\r\n/g, '\n');         // Normalize line endings
+  
+      // Split response into sections using regex for section headers
+      const sections = cleanText.split(/(?=^CONFIGURATION:|^CODESETS:)/im);
+  
+      // Process each section
+      sections.forEach(section => {
+        const trimmedSection = section.trim();
+        
+        // Handle Configuration section
+        if (/^CONFIGURATION:/i.test(trimmedSection)) {
+          configuration = trimmedSection
+            .replace(/^CONFIGURATION:\s*/i, '')  // Remove header with any following whitespace
+            .trim()
+            .split('\n')
+            .filter(line => line.trim() !== '')  // Remove empty lines
+            .join('\n');
         }
-      ]
+        
+        // Handle Codesets section
+        else if (/^CODESETS:/i.test(trimmedSection)) {
+          codesets = trimmedSection
+            .replace(/^CODESETS:\s*/i, '')  // Remove header with any following whitespace
+            .trim()
+            .split('\n')
+            .filter(line => line.trim() !== '')  // Remove empty lines
+            .join('\n');
+        }
+      });
+  
+      // Debug logging
+      console.log('Parsed Configuration:', configuration);
+      console.log('Parsed Codesets:', codesets);
+
+  
+      // Validate configuration is not empty
+      if (!configuration) {
+        throw new Error('Configuration section is missing or empty');
+      }
+  
+      // Return parsed sections
+      return {
+        configuration,
+        codesets: codesets || undefined  // Only include codesets if present
+      };
+  
+    } catch (error) {
+      console.error('Error parsing Claude response:', error);
+      throw new Error(`Failed to parse response: `);
+    }
+  }
+  
+  
+
+  private validateResponse(
+    sections: { configuration: string; codesets?: string },
+    originalConfig: string,
+    originalCodesets: string
+  ): void {
+    // this.validateConfigStructure(sections.configuration, originalConfig);
+    // this.validateNeverFields(sections.configuration, originalConfig);
+    
+    if (sections.codesets) {
+      // this.validateCodesetStructure(sections.codesets, originalCodesets);
+    }
+  }
+
+  /* private validateConfigStructure(newConfig: string, originalConfig: string): void {
+    const originalLines = originalConfig.trim().split('\n');
+    const newLines = newConfig.trim().split('\n');
+
+    if (originalLines[0] !== newLines[0]) {
+      throw new Error('Configuration header has been modified');
+    }
+
+    const columnCount = originalLines[0].split(',').length;
+    newLines.forEach((line, index) => {
+      const columns = line.split(',').length;
+      if (columns !== columnCount) {
+        throw new Error(
+          `Line ${index + 1}: Invalid column count: ${columns}, expected: ${columnCount}`
+        );
+      }
+    });
+  } */
+
+    /* private validateNeverFields(newConfig: string, originalConfig: string): string[] {
+      const originalLines = originalConfig.split('\n');
+      const neverFields = originalLines
+        .filter(line => line.includes('NEVER'))
+        .map(line => line.split(',')[0])
+        .filter(Boolean);
+    
+      const newConfigLines = newConfig.split('\n');
+      const modifiedFields: string[] = [];
+    
+      neverFields.forEach(field => {
+        const originalLine = originalLines.find(line => line.startsWith(field + ','));
+        const newLine = newConfigLines.find(line => line.startsWith(field + ','));
+    
+        if (!newLine || originalLine !== newLine) {
+          modifiedFields.push(field);
+        }
+      });
+    
+      if (modifiedFields.length > 0) {
+        throw new Error(`NEVER field(s) modified: ${modifiedFields.join(', ')}`);
+      }
+    
+      return modifiedFields;
+    } */
+    
+
+   private validateCodesetStructure(newCodesets: string, originalCodesets: string): void {
+    const lines = newCodesets.split('\n').filter(Boolean);
+
+    lines.forEach((line, index) => {
+      const parts = line.split(',');
+      if (parts.length !== 2) {
+        throw new Error(`Invalid codeset format at line ${index + 1}: ${line}`);
+      }
     });
 
-    if (!response.content || response.content.length === 0) {
-      throw new Error('No response received from Claude');
-    }
-
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type from Claude');
-    }
-
-    console.log('Raw Claude Response:', content.text);
-
-    const result = this.parseClaudeResponse(content.text);
-    
-    console.log('Parsed Configuration:', result.updatedConfig);
-    console.log('Original Configuration:', currentConfig);
-
-    // Detailed validation
-    const validationResult = this.validateConfigStructureWithDetails(result.updatedConfig, currentConfig);
-    if (!validationResult.valid) {
-      console.error('Validation Errors:', validationResult.errors);
-      throw new Error(`Invalid configuration structure: ${validationResult.errors.join(', ')}`);
-    }
-
-    return result;
-
-  } catch (error) {
-    console.error('Error in finalization processing:', error);
-    throw error;
-  }
-}
-
-/**
- * Enhanced validation with detailed error reporting
- */
-private validateConfigStructureWithDetails(
-  updatedConfig: ConfigData[],
-  originalConfig: ConfigData[]
-): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
-
-  // Check if we have a valid configuration array
-  if (!Array.isArray(updatedConfig)) {
-    errors.push('Updated configuration is not an array');
-    return { valid: false, errors };
-  }
-
-  if (updatedConfig.length === 0) {
-    errors.push('Updated configuration is empty');
-    return { valid: false, errors };
-  }
-
-  if (updatedConfig.length !== originalConfig.length) {
-    errors.push(`Configuration length mismatch: expected ${originalConfig.length}, got ${updatedConfig.length}`);
-  }
-
-  // Get all keys from original configuration
-  const originalKeys = new Set(
-    originalConfig.flatMap(item => Object.keys(item))
-  );
-
-  // Check each item in the updated configuration
-  updatedConfig.forEach((item, index) => {
-    // Verify all required keys exist
-    for (const key of originalKeys) {
-      if (!(key in item)) {
-        errors.push(`Row ${index + 1}: Missing required key "${key}"`);
+    if (originalCodesets.trim()) {
+      const originalHeader = originalCodesets.split('\n')[0].trim();
+      const newHeader = lines[0].trim();
+      
+      if (originalHeader !== newHeader) {
+        throw new Error('Codeset structure modified');
       }
     }
+  } 
 
-    // Check for unexpected keys
-    for (const key of Object.keys(item)) {
-      if (!originalKeys.has(key)) {
-        errors.push(`Row ${index + 1}: Unexpected key "${key}"`);
-      }
+  private extractContent(response: any): string {
+    if (response.content?.[0]?.type !== 'text') {
+      throw new Error('Invalid response format from Claude');
     }
 
-    // Value type validation
-    for (const key of originalKeys) {
-      if (key in item) {
-        const originalType = typeof originalConfig[0][key];
-        const updatedType = typeof item[key];
-        
-        if (originalType !== 'undefined' && updatedType !== originalType) {
-          errors.push(`Row ${index + 1}: Type mismatch for "${key}" - expected ${originalType}, got ${updatedType}`);
-        }
-      }
-    }
-  });
-
-  return {
-    valid: errors.length === 0,
-    errors
-  };
-}
-
-/**
- * Format configuration for context
- */
-private formatConfigContext(config: ConfigData[]): string {
-  return config.map(row => {
-    return Object.entries(row)
-      .map(([key, value]) => `${key}: ${value}`)
-      .join(', ');
-  }).join('\n');
-}
-
-/**
- * Parse Claude's response into structured data
- */
-private parseClaudeResponse(response: string): {
-  updatedConfig: ConfigData[];
-  explanation: string;
-  codesetUpdates?: Record<string, string[]>;
-} {
-  console.log("Claude response:", response);
-  const sections = response.split('\n\n').filter(Boolean);
-  
-  let configSection = '';
-  let explanationSection = '';
-  let codesetSection = '';
-
-  for (const section of sections) {
-    const lowerSection = section.toLowerCase();
-    if (lowerSection.includes('configuration:')) {
-      configSection = section.replace('CONFIGURATION:', '').trim();
-    } else if (lowerSection.includes('explanation:')) {
-      explanationSection = section.replace('EXPLANATION:', '').trim();
-    } else if (lowerSection.includes('codesets:')) {
-      codesetSection = section.replace('CODESETS:', '').trim();
-    }
+    const customizedrawText = response.content[0].text
+     .replace(/'\s*\+\s*'/g, ' ')
+     .replace(/\\n/g, '\n')
+     .trim()
+    console.log('rawwwtext:', customizedrawText)
+    return customizedrawText;
   }
 
-  if (!configSection) {
-    throw new Error('No configuration section found in response');
-  }
-
-  const updatedConfig = this.parseConfigSection(configSection);
-  return {
-    updatedConfig,
-    explanation: explanationSection || 'Configuration updated successfully.',
-    ...(codesetSection ? this.parseCodesetSection(codesetSection) : {})
-  };
-}
-
-/**
- * Parse codeset section of the response
- */
-private parseCodesetSection(section: string): { codesetUpdates?: Record<string, string[]> } {
-  if (!section) return {};
-
-  const updates: Record<string, string[]> = {};
-  const lines = section.split('\n').filter(Boolean);
-  let currentCodeset = '';
-
-  for (const line of lines) {
-    const trimmedLine = line.trim();
-    
-    if (trimmedLine.includes(':') && !trimmedLine.startsWith('-')) {
-      currentCodeset = trimmedLine.split(':')[0].trim();
-      updates[currentCodeset] = [];
-      continue;
-    }
-
-    if (currentCodeset && trimmedLine.startsWith('-')) {
-      const value = trimmedLine.substring(1).trim();
-      if (value) {
-        updates[currentCodeset].push(value);
-      }
-    }
-  }
-
-  return Object.keys(updates).length > 0 ? { codesetUpdates: updates } : {};
-}
-
-/**
- * Updated parsing method with better error handling
- */
-private parseConfigSection(section: string): ConfigData[] {
-  if (!section) {
-    throw new Error('Empty configuration section');
-  }
-
-  const config: ConfigData[] = [];
-  const lines = section.split('\n').filter(Boolean);
-
-  if (lines.length === 0) {
-    throw new Error('No configuration lines found');
-  }
-
-  for (const line of lines) {
-    try {
-      const pairs = line.split(',').map(pair => pair.trim());
-      const configRow: ConfigData = {};
-
-      for (const pair of pairs) {
-        const [key, ...valueParts] = pair.split(':').map(s => s.trim());
-        const value = valueParts.join(':').trim(); // Handle values that might contain colons
-
-        if (!key) {
-          throw new Error(`Invalid pair format: ${pair}`);
-        }
-
-        configRow[key.toLowerCase()] = this.processConfigValue(value);
-      }
-
-      if (Object.keys(configRow).length > 0) {
-        config.push(configRow);
-      }
-    } catch (error) {
-      console.error(`Error parsing line: ${line}`, error);
-      throw new Error(`Failed to parse configuration line: ${line}`);
-    }
-  }
-
-  return config;
-}
-
-  /**
-   * Process and convert configuration values to appropriate types
-   */
-  private processConfigValue(value: string): string | number | boolean {
-    // Convert boolean strings
-    if (value.toLowerCase() === 'true') return true;
-    if (value.toLowerCase() === 'false') return false;
-
-    // Convert numeric strings
-    if (!isNaN(Number(value)) && value.trim() !== '') {
-      return Number(value);
-    }
-
-    return value;
-  }
-
-  /**
-   * Validate the structure of the updated configuration
-   */
-  private validateConfigStructure(
-    updatedConfig: ConfigData[],
-    originalConfig: ConfigData[]
-  ): boolean {
-    // Check if we have a valid configuration
-    if (!Array.isArray(updatedConfig) || updatedConfig.length === 0) {
-      return false;
-    }
-
-    // Get all keys from original configuration
-    const originalKeys = new Set(
-      originalConfig.flatMap(item => Object.keys(item))
-    );
-
-    // Check each item in the updated configuration
-    for (const item of updatedConfig) {
-      // Verify all required keys exist
-      for (const key of originalKeys) {
-        if (!(key in item)) {
-          console.error(`Missing required key: ${key}`);
-          return false;
-        }
-      }
-
-      // Check for unexpected keys
-      for (const key of Object.keys(item)) {
-        if (!originalKeys.has(key)) {
-          console.error(`Unexpected key in configuration: ${key}`);
-          return false;
-        }
-      }
-
-      // Validate value types match original where possible
-      for (const key of originalKeys) {
-        const originalType = typeof originalConfig[0][key];
-        const updatedType = typeof item[key];
-        
-        if (originalType !== 'undefined' && updatedType !== originalType) {
-          console.error(`Type mismatch for key ${key}: expected ${originalType}, got ${updatedType}`);
-          return false;
-        }
-      }
-    }
-
-    return true;
+  private formatConversationalResponse(text: string): string {
+    return text
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/^[•-]\s*/gm, '\n• ')
+      .replace(/([.!?])\s+([A-Z])/g, '$1\n\n$2')
+      .trim()
+      .replace(/(\n• .*?)(\n[^•])/g, '$1\n\n$2');
   }
 }

@@ -1,85 +1,38 @@
-// src/lib/config/writer.ts
-import { stringify } from 'csv-stringify/sync';
-import type { ConfigData, CodesetUpdate } from '@/types';
+import type { ConfigParams } from '@/types';
 import fs from 'fs/promises';
+import { DirectoryManager } from '../utils/directory';
+
+interface ParsedResponse {
+  configuration: string;
+  codesets?: string;
+}
 
 export class ConfigWriter {
-  static async writeCSV(filePath: string, data: ConfigData[]): Promise<void> {
-    try {
-      const content = stringify(data, {
-        header: true,
-        cast: {
-          boolean: (value) => value ? 'true' : 'false',
-          number: (value) => value.toString()
-        }
-      });
-      await fs.writeFile(filePath, content, 'utf-8');
-    } catch (error) {
-      console.error('Error writing CSV:', error);
-      throw error;
-    }
+  private directoryManager: DirectoryManager;
+
+  constructor() {
+    this.directoryManager = new DirectoryManager();
   }
 
-  static async updateCodesetValues(
-    filePath: string,
-    updates: Record<string, string[]>
-  ): Promise<void> {
+  async writeFiles(params: ConfigParams, parsedResponse: ParsedResponse): Promise<void> {
     try {
-      // Convert Record to CodesetUpdate array
-      const codesetUpdates: CodesetUpdate[] = Object.entries(updates).map(
-        ([codeset, values]) => ({
-          codeset,
-          values
-        })
-      );
+      // Ensure directories are created
+      await this.directoryManager.ensureDirectories(params);
 
-      const content = await fs.readFile(filePath, 'utf-8');
-      const updatedContent = await this.mergeCodesetValues(content, codesetUpdates);
-      await fs.writeFile(filePath, updatedContent, 'utf-8');
+      // Write configuration file
+      const configPath = this.directoryManager.getUserConfigFilePath(params, 'config');
+      await fs.writeFile(configPath, parsedResponse.configuration, 'utf-8');
+      console.log(`Configuration written to: ${configPath}`);
+
+      // Write codesets file if present
+      if (parsedResponse.codesets) {
+        const codesetPath = this.directoryManager.getUserConfigFilePath(params, 'codesetvalues');
+        await fs.writeFile(codesetPath, parsedResponse.codesets, 'utf-8');
+        console.log(`Codesets written to: ${codesetPath}`);
+      }
     } catch (error) {
-      console.error('Error updating codesetvalues:', error);
+      console.error('Error writing files:', error);
       throw error;
     }
-  }
-
-  private static async mergeCodesetValues(
-    existingContent: string,
-    updates: CodesetUpdate[]
-  ): Promise<string> {
-    const lines = existingContent.split('\n');
-    const header = lines[0];
-    const existingValues = new Map<string, Set<string>>();
-
-    // Parse existing values
-    for (let i = 1; i < lines.length; i++) {
-      const [codeset, value] = lines[i].split(',').map(s => s.trim());
-      if (codeset && value) {
-        if (!existingValues.has(codeset)) {
-          existingValues.set(codeset, new Set());
-        }
-        existingValues.get(codeset)?.add(value);
-      }
-    }
-
-    // Merge updates
-    for (const update of updates) {
-      if (!existingValues.has(update.codeset)) {
-        existingValues.set(update.codeset, new Set());
-      }
-      const valueSet = existingValues.get(update.codeset);
-      if (valueSet) {
-        update.values.forEach(value => valueSet.add(value));
-      }
-    }
-
-    // Generate updated content
-    const updatedLines = [header];
-    for (const [codeset, values] of existingValues.entries()) {
-      values.forEach(value => {
-        updatedLines.push(`${codeset},${value}`);
-      });
-    }
-
-    return updatedLines.join('\n');
   }
 }

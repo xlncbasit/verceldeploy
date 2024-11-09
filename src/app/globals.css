@@ -5,6 +5,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  font-family: 'Poppins', sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -17,5 +18,24 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Global Typography Defaults */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+}
+
+p, span, div {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 400;
+}
+
+input, button, textarea {
+  font-family: 'Poppins', sans-serif;
+}
+
+button {
+  font-weight: 500;
 }

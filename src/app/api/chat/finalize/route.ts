@@ -157,4 +157,4 @@ export async function POST(request: Request) {
 // Route configuration
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 180; // 3 minutes maximum
+export const maxDuration = 60; // 3 minutes maximum

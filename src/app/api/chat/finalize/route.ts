@@ -79,6 +79,7 @@ export async function POST(request: Request) {
     // Build requirements summary
     const requirementsSummary = conversationHistory
       .filter(msg => msg.role === 'user')
+      
       .map(msg => msg.content.trim())
       .filter(Boolean)
       .join('\n\n');

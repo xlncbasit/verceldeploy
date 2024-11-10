@@ -37,7 +37,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
     setMounted(true);
     setMessages([{
       role: 'assistant',
-      content: `Welcome! I'm your AI assistant for the ${params.moduleKey} module. Please tell me about your customization requirements.`
+      content: `Buzz🐝! Hi there ! I'm Fieldmo the Bee, your friendly ERP consultant to customize the ${params.moduleKey} module for you. Please tell me about your customization requirements.`
     }]);
   }, [params.moduleKey]);
 

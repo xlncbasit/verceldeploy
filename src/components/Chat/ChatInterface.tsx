@@ -41,6 +41,14 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
     }]);
   }, [params.moduleKey]);
 
+  function formatMessageContent(content: string): string {
+    return content
+      // .replace(/•/g, '<br/>•') // Add line break before bullet points
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Make text bold
+      .replace(/\n/g, '<br/>'); // Convert newlines to HTML breaks
+      
+  }
+  
   const handleFinalizeCustomization = async () => {
     setIsTyping(true);
     try {
@@ -139,9 +147,10 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
         }
 
         const data = await response.json();
+        const formattedContent = formatMessageContent(data.response);
         setMessages(prev => [...prev, { 
           role: 'assistant', 
-          content: data.response 
+          content: formattedContent
         }]);
       }
     } catch (error) {
@@ -204,9 +213,10 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
                     />
                   </div>
                   <div className={`message ${message.role}`}>
-                    <div className="message-content">
-                      {message.content}
-                    </div>
+                  <div 
+                    className="message-content"
+                    dangerouslySetInnerHTML={{ __html: message.content }}
+                  />
                   </div>
                 </div>
               ))}

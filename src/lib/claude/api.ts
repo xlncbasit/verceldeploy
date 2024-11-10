@@ -232,6 +232,8 @@ Use bullet points for lists
    • Bold important points using **text**
    • Use clear sections with headings
    • Add line breaks between sections
+   • Use \n tag for new lines
+
 
 For first interaction:
 Warmly welcome them and ask if they'd like to explore specific changes to their current setup or if they'd prefer recommendations based on industry best practices. Share a brief example relevant to their industry to make it more relatable.

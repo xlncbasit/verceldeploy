@@ -229,6 +229,17 @@
 .message-content {
   font-size: 0.9rem;
   font-weight: 500;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.message-content br {
+  display: block;
+  margin: 5px 0;
+}
+
+.message-content strong {
+  font-weight: 600;
 }
 
 .input-container {

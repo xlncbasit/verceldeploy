@@ -22,6 +22,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
   const [phase, setPhase] = useState<'requirements' | 'review'>('requirements');
   const [configState, setConfigState] = useState<ConfigState | null>(null);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const avatarImages = {
@@ -207,9 +208,34 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
     return messages.length > 0 && messages[messages.length - 1].role === 'assistant';
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   return (
     <div className="container">
       <header className="header">
+        <button 
+          className="sidebar-toggle"
+          onClick={toggleSidebar}
+          aria-label="Toggle Sidebar"
+        >
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+          >
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
         <div className="logo">fieldmobi.ai</div>
         {error && (
           <div className="error-banner">
@@ -219,7 +245,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
       </header>
 
       <div className="content-wrapper">
-        <div className="params-sidebar">
+        <div className={`params-sidebar ${isSidebarOpen ? 'active' : ''}`}>
           <h2>Configuration Parameters</h2>
           {Object.entries(params).map(([key, value]) => (
             <div key={key} className="param-item">

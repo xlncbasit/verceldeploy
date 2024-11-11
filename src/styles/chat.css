@@ -22,6 +22,142 @@
   border-right: 4px solid #000000;
   overflow-y: auto;
   flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .content-wrapper {
+    position: relative;
+  }
+
+  .params-sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    transform: translateX(-100%);
+    z-index: 10;
+  }
+
+  .params-sidebar.active {
+    transform: translateX(0);
+  }
+
+  .main-container {
+    width: 100%;
+  }
+}
+
+/* Add a toggle button for mobile */
+.sidebar-toggle {
+  display: none;
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 11;
+  padding: 8px;
+  background: #3A53A3;
+  border: none;
+  border-radius: 4px;
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .sidebar-toggle {
+    display: block;
+  }
+}
+
+/* Improve message container responsiveness */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+  border: 4px solid #000000;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  background-color: white;
+}
+
+/* Make messages more responsive */
+.message-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+  max-width: 85%;
+}
+
+@media (max-width: 576px) {
+  .message-wrapper {
+    max-width: 95%;
+  }
+
+  .assistant-wrapper {
+    margin-right: 5%;
+  }
+
+  .user-wrapper {
+    margin-left: 5%;
+  }
+}
+
+/* Improve input container responsiveness */
+.input-container {
+  display: flex;
+  gap: 10px;
+  background-color: white;
+  padding: 15px;
+  border-radius: 10px;
+  border: 4px solid #000000;
+}
+
+@media (max-width: 576px) {
+  .input-container {
+    padding: 10px;
+  }
+
+  input[type="text"] {
+    font-size: 14px;
+  }
+
+  button {
+    padding: 5px 15px;
+    font-size: 14px;
+  }
+}
+
+/* Improve header responsiveness */
+.header {
+  background-color: #000000;
+  width: 100%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+}
+
+@media (max-width: 576px) {
+  .header {
+    padding: 10px;
+  }
+
+  .logo {
+    font-size: 1.2rem;
+  }
+}
+
+/* Add responsive styling for error banner */
+.error-banner {
+  background-color: #ff5555;
+  color: white;
+  padding: 10px;
+  margin: 10px;
+  border-radius: 4px;
+  max-width: 100%;
+  word-break: break-word;
 }
 
 .finalize-button {
@@ -155,6 +291,8 @@
   border: none;
   max-width: 80%;
   box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+  word-wrap: break-word;
+  white-space: normal;
 }
 
 .avatar {
@@ -176,7 +314,7 @@
 .assistant-wrapper {
   margin-right: 0;
   margin-left: 20px; /* Add some spacing from the left edge */
-  width: calc(50% - 20px); /* Adjust width accounting for margin */
+  width: calc(80% - 20px); /* Adjust width accounting for margin */
 
 }
 
@@ -229,8 +367,9 @@
 .message-content {
   font-size: 0.9rem;
   font-weight: 500;
-  
+  display: inline-block;
   word-break: break-word;
+  line-height: 1.4;
 }
 
 .message-content br {
@@ -240,6 +379,21 @@
 
 .message-content strong {
   font-weight: 600;
+}
+
+@media (max-width: 576px) {
+  .message {
+    padding: 12px;
+    margin: 8px 0;
+  }
+
+  .message-content {
+    font-size: 0.85rem;
+  }
+
+  .input-container {
+    padding: 10px;
+  }
 }
 
 .input-container {
@@ -372,6 +526,21 @@ button:hover {
   width: 16px;
   height: 16px;
   transition: transform 0.3s ease;
+}
+
+.input-container button {
+  padding: 8px 24px;
+  background-color: #fdbb11;
+  color: #fdbb11;
+  border: 2px solid #000000;
+  border-radius: 25px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .input-container button:hover svg {

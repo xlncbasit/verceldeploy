@@ -369,9 +369,9 @@ ${this.configSummary}
 
     
 
-  2. CUSTOMIZATION COLUMN (Column AA) RULES (Previously "Remarks"):
+  2. CUSTOMIZATION COLUMN (strictly column 27) RULES (Previously "Remarks"):
     - CHANGE: Apply to any customized fields
-    - NONE: Use for unchanged fields (except those marked NEVER)
+    - NONE: Use for unchanged fields 
     - REMOVE: For fields to be deprecated (don't delete)
     - NEW: For newly added fields
 

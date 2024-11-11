@@ -284,10 +284,7 @@ Provide a concise 3-4 sentence summary that a business user can understand. Use 
         -Format recommendations as actionable configuration changes
         -Keep track of all suggested changes for potential implementation
 
-        For Option 2 responses, structure them as:
-1. Business Recommendation
-2. Technical Implementation Details 
-3. Expected Benefits
+
 
 Example Format:
 RECOMMENDATION: Add warranty tracking for assets

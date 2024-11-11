@@ -5,6 +5,8 @@ import { DirectoryManager } from '@/lib/utils/directory';
 import { ConfigValidator } from '@/lib/utils/validation';
 import type { ConfigParams } from '@/types';
 
+const claude = new ClaudeAPI();
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -23,8 +25,7 @@ export async function POST(request: Request) {
     const dirManager = new DirectoryManager();
     const configs = await dirManager.getRawConfigurations(params);
 
-    // Initialize Claude API and get summary
-    const claude = new ClaudeAPI();
+    // Generate and store summary
     const summary = await claude.analyzeConfiguration(configs.configContent);
 
     return NextResponse.json({

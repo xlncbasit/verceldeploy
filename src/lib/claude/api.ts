@@ -208,14 +208,14 @@
   public async analyzeConfiguration(rawConfig: string): Promise<string> {
     try {
       const analysisPrompt = `Analyze this ERP module configuration and provide a brief, clear summary of its current setup. Focus on:
-  1. Key functionality
-  2. Main field types and their purposes
-  3. Notable features or capabilities
+1. Key functionality
+2. Main field types and their purposes
+3. Notable features or capabilities
 
-  Configuration:
-  ${rawConfig}
+Configuration:
+${rawConfig}
 
-  Provide a concise 3-4 sentence summary that a business user can understand. Use natural language and avoid technical jargon.`;
+Provide a concise 3-4 sentence summary that a business user can understand. Use natural language and avoid technical jargon.`;
 
       const response = await this.client.messages.create({
         model: this.model,
@@ -226,38 +226,28 @@
 
       this.configSummary = this.extractContent(response);
       return this.configSummary;
-
-      
-      
     } catch (error) {
-      
       console.error('Error analyzing configuration:', error);
-      return 'Unable to analyze configuration at this time.';
+      throw error;
     }
-    
   }
 
-  public setConfigSummary(summary: string) {
-    this.configSummary = summary;
-  }
+  async processConversation(
+    message: string, 
+    params: ConfigParams, 
+    rawConfig: string, 
+    rawCodesets: string
+  ): Promise<{ reply: string }> {
+    try {
+      if (!this.configSummary) {
+        // Get config summary if not already available
+        await this.analyzeConfiguration(rawConfig);
+      }
 
+      const conversationPrompt = `You are a friendly ERP consultant and implementation expert who helps organizations customize their ERP applications. You're currently assisting with the ${params.moduleKey} module for a ${params.industry} organization, specifically in ${params.subIndustry}.
 
-
-    async processConversation(
-      message: string, 
-      params: ConfigParams, 
-      rawConfig: string, 
-      rawCodesets: string
-    ): Promise<{ reply: string }> {
-      try {
-
-        const configContext = this.configSummary ? 
-        `\n\nCurrent Configuration Context:\n${this.configSummary}\n\n` : '';
-
-
-        const conversationPrompt = `You are a friendly ERP consultant and implementation expert who helps organizations customize their ERP applications. You're currently assisting with the ${params.moduleKey} module for a ${params.industry} organization, specifically in ${params.subIndustry}. Your name is Fieldmo the Bee but the user already knows you so you don’t need to introduce yourself. The conversation should sound natural so do not repeat things.${configContext}
-
-        
+Current Configuration Summary:
+${this.configSummary}
 
   Your personality:
   - Friendly yet professional

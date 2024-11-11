@@ -20,6 +20,8 @@ export async function POST(request: Request) {
       );
     }
 
+    
+
     const dirManager = new DirectoryManager();
     
     // Initialize directories if needed

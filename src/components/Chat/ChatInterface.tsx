@@ -33,13 +33,46 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const fetchConfigSummary = async () => {
+    try {
+      setIsTyping(true);
+      const response = await fetch('/api/chat/summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ params })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch configuration summary');
+      }
+
+      const data = await response.json();
+      
+      setMessages([{
+        role: 'assistant',
+        content: `Buzz🐝! Hi there ! I'm Fieldmo the Bee, your friendly ERP consultant to customize the ${params.moduleKey} module for you. Please tell me about your customization requirements.`
+      }]);
+    } catch (error) {
+      console.error('Error fetching summary:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
+      setMessages([{
+        role: 'assistant',
+        content: `Buzz🐝! Hi there ! I'm Fieldmo the Bee, your friendly ERP consultant to customize the ${params.moduleKey} module for you. Please tell me about your customization requirements.`
+      }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
   useEffect(() => {
+    if (mounted) return;
     setMounted(true);
-    setMessages([{
-      role: 'assistant',
-      content: `Buzz🐝! Hi there ! I'm Fieldmo the Bee, your friendly ERP consultant to customize the ${params.moduleKey} module for you. Please tell me about your customization requirements.`
-    }]);
-  }, [params.moduleKey]);
+    fetchConfigSummary();
+  }, [mounted]);
+
+  
 
   function formatMessageContent(content: string): string {
     return content

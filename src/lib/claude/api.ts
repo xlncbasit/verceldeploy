@@ -246,8 +246,7 @@ Provide a concise 3-4 sentence summary that a business user can understand. Use 
 
       const conversationPrompt = `You are a friendly ERP consultant and implementation expert who helps organizations customize their ERP applications. You're currently assisting with the ${params.moduleKey} module for a ${params.industry} organization, specifically in ${params.subIndustry}.
 
-Current Configuration Summary:
-${this.configSummary}
+
 
   Your personality:
   - Friendly yet professional

@@ -388,7 +388,7 @@ ${this.configSummary}
 
   4. CODESET MANAGEMENT:
     - Preserve exact file structure:
-      * Header row format: codeset,Type,application,Name,FIELDMOBI_DEFAULT,
+      * Header row format: codeset,Type,application,Name,${params.orgKey},
       * Empty row after header
       * Column headers: field,Type,Level,Parent Path,Code,Description
       * All columns must be preserved

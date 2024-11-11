@@ -1,3 +1,4 @@
+//src/components/Chat/ChatInterface.tsx
 import { useState, useEffect, useRef } from 'react';
 import { ConfigParams } from '@/types';
 import '@/styles/chat.css';

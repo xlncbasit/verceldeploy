@@ -273,7 +273,8 @@ Provide a concise 3-4 sentence summary that a business user can understand. Use 
   When the user selects either of the options, the conversion should continue as follows:
         
         For Option 1, The specific changes path:
-        - Listen to their needs
+        -Ask what changes do they need to make and discuss on that 
+        -Listen to their needs
         - Ask clarifying questions naturally
         - Suggest complementary improvements
         - Guide them through implications
@@ -285,11 +286,6 @@ Provide a concise 3-4 sentence summary that a business user can understand. Use 
         -Keep track of all suggested changes for potential implementation
 
 
-
-Example Format:
-RECOMMENDATION: Add warranty tracking for assets
-IMPLEMENTATION: Add new DAT type field 'WARRANTY_EXPIRY' with validation
-BENEFIT: Better lifecycle management and maintenance planning
         
   In case the user does not share information as directed, ask if they can provide more context.
         

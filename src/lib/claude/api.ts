@@ -359,6 +359,20 @@ BENEFIT: Better lifecycle management and maintenance planning
   REQUIREMENTS SUMMARY:
   ${requirementsSummary}
 
+  ANALYSIS INSTRUCTIONS:
+1. For industry recommendations (Option 2):
+   - Convert recommendations into concrete configuration changes
+   - Apply industry best practices automatically
+   - Add relevant fields and codesets
+   - Update display parameters for optimal workflow
+   - Maintain all business logic and relationships
+
+2. For specific changes (Option 1):
+   - Implement requested changes exactly as specified
+   - Validate against business rules
+   - Maintain system integrity
+
+
   PROCESSING INSTRUCTIONS:
   1. Analyze requirements thoroughly
   2. Apply customizations following all rules

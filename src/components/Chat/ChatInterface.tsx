@@ -54,14 +54,14 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
       
       setMessages([{
         role: 'assistant',
-        content: `Buzz🐝! Hi! I'm Fieldmo the Bee, your friendly ERP consultant, here to customize the ${params.moduleKey} module for you. I'm a bit of a curious be so I'll keep asking you questions to find out more about requirements.<br/><br/> If you feel you have given enough information press the Deploy button and relax!`
+        content: `Buzz🐝! Hi! I'm Fieldmo the Bee, your friendly ERP consultant, here to customize the ${params.moduleKey} module for you. I'm a bit of a curious bee so I'll keep asking you questions to find out more about requirements.<br/><br/> If you feel you have given enough information press the Deploy button and relax!`
       }]);
     } catch (error) {
       console.error('Error fetching summary:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
       setMessages([{
         role: 'assistant',
-        content: `Buzz🐝! Hi! I'm Fieldmo the Bee, your friendly ERP consultant, here to customize the ${params.moduleKey} module for you. I'm a bit of a curious be so I'll keep asking you questions to find out more about requirements.<br/><br/> If you feel you have given enough information press the Deploy button and relax!`
+        content: `Buzz🐝! Hi! I'm Fieldmo the Bee, your friendly ERP consultant, here to customize the ${params.moduleKey} module for you. I'm a bit of a curious bee so I'll keep asking you questions to find out more about requirements.<br/><br/> If you feel you have given enough information press the Deploy button and relax!`
       }]);
     } finally {
       setIsTyping(false);

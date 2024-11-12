@@ -54,14 +54,14 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
       
       setMessages([{
         role: 'assistant',
-        content: `Buzz🐝! Hi there ! I'm Fieldmo the Bee, your friendly ERP consultant to customize the ${params.moduleKey} module for you. Please tell me about your customization requirements.`
+        content: `Buzz🐝! Hi there ! I'm Fieldmo the Bee, your friendly ERP consultant here to customize the ${params.moduleKey} module for you. Please tell me about your customization requirements. When you see the Deploy button, I'm ready to deploy your customized application. But I'm a curious bee so i'll continue to ask questions to enhance it better. Feel free to hit the Deploy button.`
       }]);
     } catch (error) {
       console.error('Error fetching summary:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
       setMessages([{
         role: 'assistant',
-        content: `Buzz🐝! Hi there ! I'm Fieldmo the Bee, your friendly ERP consultant to customize the ${params.moduleKey} module for you. Please tell me about your customization requirements.`
+        content: `Buzz🐝! Hi there ! I'm Fieldmo the Bee, your friendly ERP consultant here to customize the ${params.moduleKey} module for you. Please tell me about your customization requirements. When you see the Deploy button, I'm ready to deploy your customized application. But I'm a curious bee so i'll continue to ask questions to enhance it better. Feel free to hit the Deploy button.`
       }]);
     } finally {
       setIsTyping(false);
@@ -78,7 +78,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
 
   function formatMessageContent(content: string): string {
     return content
-      .replace(/\n{2,}/g, '<br/><br/>') // Replace multiple newlines with double break
+      .replace(/\n{2,}/g, '<br/>') // Replace multiple newlines with break
       .replace(/\n/g, '<br/>') // Replace single newlines with single break
       .replace(/• /g, '• ') // Don't add break before bullets as they already have line breaks
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Make text bold
@@ -115,7 +115,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
       setPhase('review');
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `Based on our conversation, I've prepared the customization changes. Here's a summary of what will be modified:\n\n${data.summary}\n\nWould you like to proceed with these changes? Please respond with 'yes' to confirm or 'no' to make adjustments.`
+        content: `Your customized configuration has been created successfully.`
       }]);
       setAwaitingConfirmation(true);
     } catch (error) {
@@ -328,7 +328,11 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
                 }
                 disabled={isTyping}
               />
-              <button type="submit" disabled={isTyping || !inputValue.trim()}>
+              <button 
+                type="submit" 
+                disabled={isTyping || !inputValue.trim()}
+                aria-label="Send message"  // Added this line for accessibility
+              >
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   viewBox="0 0 24 24" 
@@ -337,11 +341,11 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
                   strokeWidth="2" 
                   strokeLinecap="round" 
                   strokeLinejoin="round"
+                  aria-hidden="true"  // Added this to prevent screen readers from reading the SVG
                 >
                   <line x1="22" y1="2" x2="11" y2="13"></line>
                   <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                 </svg>
-                Send
               </button>
             </form>
           </div>

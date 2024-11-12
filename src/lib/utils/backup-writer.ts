@@ -7,9 +7,17 @@ export class BackupWriter {
   private codesetBackupPath: string;
 
   constructor() {
-    // Linux paths for GCP VM
+    // Absolute Linux paths
     this.configBackupPath = '/opt/tomcat/webapps/ROOT/upload/configfiles';
     this.codesetBackupPath = '/opt/tomcat/webapps/ROOT/upload/codefiles';
+
+    // Log process info
+    console.log('Process and directory info:', {
+      uid: process.getuid?.(),
+      gid: process.getgid?.(),
+      configPath: this.configBackupPath,
+      codesetPath: this.codesetBackupPath
+    });
   }
 
   /**
@@ -24,37 +32,34 @@ export class BackupWriter {
   }
 
   /**
-   * Ensure directory exists with proper permissions
+   * Write file and set proper permissions
    */
-  private async ensureDirectory(dirPath: string): Promise<void> {
+  private async writeFile(filePath: string, content: string): Promise<void> {
     try {
-      await fs.access(dirPath);
-    } catch (error) {
-      try {
-        // Directory doesn't exist, create it with proper permissions (755)
-        await fs.mkdir(dirPath, { 
-          recursive: true, 
-          mode: 0o755  // rwxr-xr-x permissions
-        });
-        console.log(`Created directory: ${dirPath}`);
-      } catch (mkdirError) {
-        console.error(`Failed to create directory ${dirPath}:`, mkdirError);
-        throw mkdirError;
-      }
-    }
-  }
+      // Write the file
+      await fs.writeFile(filePath, content, {
+        encoding: 'utf-8',
+        mode: 0o664  // rw-rw-r-- permissions
+      });
 
-  /**
-   * Write file with proper permissions
-   */
-  private async writeFileWithPermissions(
-    filePath: string, 
-    content: string
-  ): Promise<void> {
-    await fs.writeFile(filePath, content, {
-      encoding: 'utf-8',
-      mode: 0o644  // rw-r--r-- permissions
-    });
+      // Since we're root, explicitly set ownership to tomcat:tomcat
+      const { exec } = require('child_process');
+      await new Promise((resolve, reject) => {
+        exec(`chown tomcat:tomcat "${filePath}"`, (error: any) => {
+          if (error) {
+            console.error('Error setting file ownership:', error);
+            reject(error);
+          } else {
+            resolve(true);
+          }
+        });
+      });
+
+      console.log(`File written successfully: ${filePath}`);
+    } catch (error) {
+      console.error(`Error writing file ${filePath}:`, error);
+      throw error;
+    }
   }
 
   /**
@@ -71,29 +76,28 @@ export class BackupWriter {
         return;
       }
 
-      // Ensure directories exist with proper permissions
-      await this.ensureDirectory(this.configBackupPath);
-      await this.ensureDirectory(this.codesetBackupPath);
-
       const filename = this.createBackupFilename(params.userKey);
+      console.log('Writing backup with filename:', filename);
 
       // Write config backup if content provided
       if (configContent) {
         const configPath = path.join(this.configBackupPath, filename);
-        await this.writeFileWithPermissions(configPath, configContent);
-        console.log('Config backup written:', configPath);
+        console.log('Writing config to:', configPath);
+        await this.writeFile(configPath, configContent);
       }
 
       // Write codeset backup if content provided
       if (codesetContent) {
         const codesetPath = path.join(this.codesetBackupPath, filename);
-        await this.writeFileWithPermissions(codesetPath, codesetContent);
-        console.log('Codeset backup written:', codesetPath);
+        console.log('Writing codeset to:', codesetPath);
+        await this.writeFile(codesetPath, codesetContent);
       }
 
+      console.log('Backup write operations completed successfully');
+
     } catch (error) {
-      console.error('Error writing backups:', error);
-      // Print more detailed error information
+      console.error('Error in writeBackups:', error);
+      // Print full error details
       if (error instanceof Error) {
         console.error('Error details:', {
           message: error.message,
@@ -101,22 +105,6 @@ export class BackupWriter {
           name: error.name
         });
       }
-      // Log error but don't throw - backup failure shouldn't stop main operations
-      console.log('Continuing without backup');
-    }
-  }
-
-  /**
-   * Verify file was written successfully
-   */
-  private async verifyFile(filePath: string): Promise<boolean> {
-    try {
-      await fs.access(filePath, fs.constants.R_OK | fs.constants.W_OK);
-      const stats = await fs.stat(filePath);
-      return stats.size > 0;
-    } catch (error) {
-      console.error(`File verification failed for ${filePath}:`, error);
-      return false;
     }
   }
 
@@ -129,23 +117,18 @@ export class BackupWriter {
       const now = Date.now();
       const maxAge = retentionDays * 24 * 60 * 60 * 1000;
 
-      // Helper function to clean directory
       const cleanDirectory = async (dirPath: string): Promise<void> => {
-        try {
-          const files = await fs.readdir(dirPath);
-          for (const file of files) {
-            if (!file.endsWith('.csv')) continue;
-            
-            const filePath = path.join(dirPath, file);
-            const stats = await fs.stat(filePath);
-            
-            if (now - stats.mtimeMs > maxAge) {
-              await fs.unlink(filePath);
-              console.log('Deleted old backup:', file);
-            }
+        const files = await fs.readdir(dirPath);
+        for (const file of files) {
+          if (!file.endsWith('.csv')) continue;
+          
+          const filePath = path.join(dirPath, file);
+          const stats = await fs.stat(filePath);
+          
+          if (now - stats.mtimeMs > maxAge) {
+            await fs.unlink(filePath);
+            console.log('Deleted old backup:', file);
           }
-        } catch (error) {
-          console.error(`Error cleaning directory ${dirPath}:`, error);
         }
       };
 
@@ -153,8 +136,6 @@ export class BackupWriter {
         cleanDirectory(this.configBackupPath),
         cleanDirectory(this.codesetBackupPath)
       ]);
-
-      console.log('Backup cleanup completed');
 
     } catch (error) {
       console.error('Error cleaning up old backups:', error);

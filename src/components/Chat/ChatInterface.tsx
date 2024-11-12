@@ -287,7 +287,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
                   <div className="avatar">
                     <img 
                       src={avatarImages.assistant}
-                      alt="Assistant Avatar"
+                      alt="Assistant typing"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.src = '/api/placeholder/50/50';

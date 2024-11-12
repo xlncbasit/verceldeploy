@@ -54,14 +54,14 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
       
       setMessages([{
         role: 'assistant',
-        content: `Buzz🐝! Hi there ! I'm Fieldmo the Bee, your friendly ERP consultant here to customize the ${params.moduleKey} module for you. Please tell me about your customization requirements. When you see the Deploy button, I'm ready to deploy your customized application. But I'm a curious bee so i'll continue to ask questions to enhance it better. Feel free to hit the Deploy button.`
+        content: `Buzz🐝! Hi! I'm Fieldmo the Bee, your friendly ERP consultant, here to customize the <MODULE_KEY> for you. I'm a bit of a curious be so I'll keep asking you questions to find out more about requirements.<br/><br/> If you see a deploy button, I have enough information to customize so feel free to hit it when you've told me enough about what you need.`
       }]);
     } catch (error) {
       console.error('Error fetching summary:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
       setMessages([{
         role: 'assistant',
-        content: `Buzz🐝! Hi there ! I'm Fieldmo the Bee, your friendly ERP consultant here to customize the ${params.moduleKey} module for you. Please tell me about your customization requirements. When you see the Deploy button, I'm ready to deploy your customized application. But I'm a curious bee so i'll continue to ask questions to enhance it better. Feel free to hit the Deploy button.`
+        content: `Buzz🐝! Hi! I'm Fieldmo the Bee, your friendly ERP consultant, here to customize the <MODULE_KEY> for you. I'm a bit of a curious be so I'll keep asking you questions to find out more about requirements.<br/><br/> If you see a deploy button, I have enough information to customize so feel free to hit it when you've told me enough about what you need.`
       }]);
     } finally {
       setIsTyping(false);

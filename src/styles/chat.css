@@ -422,33 +422,7 @@ input[type="text"]:focus {
   outline: none;
   border-color: #41C1CF;
 }
-.chat-input {
-  flex-grow: 1;
-  padding: 12px 20px;
-  border: 2px solid #000000;
-  border-radius: 25px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  resize: none;
-  min-height: 24px;
-  max-height: 150px;
-  outline: none;
-  line-height: 1.5;
-  font-family: inherit;
-}
 
-.chat-input:focus {
-  outline: none;
-  border-color: #fdbb11;
-  box-shadow: 0 0 0 2px rgba(253, 187, 17, 0.2);
-}
-
-.chat-input::placeholder {
-  color: #666;
-  opacity: 0.8;
-  transition: opacity 0.3s ease;
-}
 
 button {
   background: linear-gradient(135deg, #000000, #1a1a1a);
@@ -784,14 +758,6 @@ button:hover {
     word-wrap: break-word;
     white-space: normal;
   }
-  .chat-input {
-    font-size: 0.8rem;
-    padding: 8px 14px;
-  }
-  
-  .chat-input::placeholder {
-    font-size: 0.8rem;
-  }
 
   .message-wrapper {
     display: flex;
@@ -956,15 +922,6 @@ button:hover {
   .input-container {
     padding: 8px;
     gap: 6px;
-  }
-  .chat-input {
-    font-size: 0.7rem;
-    padding: 6px 10px;
-    min-height: 20px;
-  }
-  
-  .chat-input::placeholder {
-    font-size: 0.7rem;
   }
 
   /* Message adjustments */

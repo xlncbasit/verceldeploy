@@ -326,7 +326,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
                     // Let enter create a new line
                     return;
                   }
-                  if (e.key === 'Enter' && e.shiftKey) {
+                  if (e.key === 'Enter' && !e.shiftKey) {
                     // Regular Shift+Enter submits the form
                     e.preventDefault();
                     handleSubmit(e);

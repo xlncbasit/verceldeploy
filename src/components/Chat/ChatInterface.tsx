@@ -54,14 +54,14 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
       
       setMessages([{
         role: 'assistant',
-        content: `Buzz🐝! Hi! I'm Fieldmo the Bee, your friendly ERP consultant, here to customize the <MODULE_KEY> for you. I'm a bit of a curious be so I'll keep asking you questions to find out more about requirements.<br/><br/> If you see a deploy button, I have enough information to customize so feel free to hit it when you've told me enough about what you need.`
+        content: `Buzz🐝! Hi! I'm Fieldmo the Bee, your friendly ERP consultant, here to customize the ${params.moduleKey} module for you. I'm a bit of a curious be so I'll keep asking you questions to find out more about requirements.<br/><br/> If you feel you have given enough information press the Deploy button and relax!`
       }]);
     } catch (error) {
       console.error('Error fetching summary:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
       setMessages([{
         role: 'assistant',
-        content: `Buzz🐝! Hi! I'm Fieldmo the Bee, your friendly ERP consultant, here to customize the <MODULE_KEY> for you. I'm a bit of a curious be so I'll keep asking you questions to find out more about requirements.<br/><br/> If you see a deploy button, I have enough information to customize so feel free to hit it when you've told me enough about what you need.`
+        content: `Buzz🐝! Hi! I'm Fieldmo the Bee, your friendly ERP consultant, here to customize the ${params.moduleKey} module for you. I'm a bit of a curious be so I'll keep asking you questions to find out more about requirements.<br/><br/> If you feel you have given enough information press the Deploy button and relax!`
       }]);
     } finally {
       setIsTyping(false);
@@ -318,20 +318,32 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
             </div>
 
             <form onSubmit={handleSubmit} className="input-container">
-              <input
-                type="text"
+              <textarea
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' ) {
+                    // Let enter create a new line
+                    return;
+                  }
+                  if (e.key === 'Enter' && e.shiftKey) {
+                    // Regular Shift+Enter submits the form
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }
+                }}
                 placeholder={phase === 'review' && awaitingConfirmation ? 
                   "Type 'yes' to confirm or 'no' to make adjustments" : 
                   "Type your message..."
                 }
                 disabled={isTyping}
+                rows={1}
+                className="chat-input"
               />
               <button 
                 type="submit" 
                 disabled={isTyping || !inputValue.trim()}
-                aria-label="Send message"  // Added this line for accessibility
+                aria-label="Send message"
               >
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
@@ -341,7 +353,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
                   strokeWidth="2" 
                   strokeLinecap="round" 
                   strokeLinejoin="round"
-                  aria-hidden="true"  // Added this to prevent screen readers from reading the SVG
+                  aria-hidden="true"
                 >
                   <line x1="22" y1="2" x2="11" y2="13"></line>
                   <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>

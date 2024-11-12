@@ -78,7 +78,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
 
   function formatMessageContent(content: string): string {
     return content
-      .replace(/\n{2,}/g, '<br/>') // Replace multiple newlines with break
+      .replace(/\n{2,}/g, '<br/><br/>') // Replace multiple newlines with break
       .replace(/\n/g, '<br/>') // Replace single newlines with single break
       .replace(/• /g, '• ') // Don't add break before bullets as they already have line breaks
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Make text bold

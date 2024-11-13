@@ -101,9 +101,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to process customization');
-      }
+      
 
       const data = await response.json();
       setConfigState({

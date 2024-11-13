@@ -149,7 +149,7 @@ input[type="text"]:focus::placeholder {
 
 
 /* Add responsive styling for error banner */
-.error-banner {
+/* .error-banner {
   background-color: #ff5555;
   color: white;
   padding: 10px;
@@ -157,7 +157,7 @@ input[type="text"]:focus::placeholder {
   border-radius: 4px;
   max-width: 100%;
   word-break: break-word;
-}
+} */
 
 .finalize-button {
   display: block;

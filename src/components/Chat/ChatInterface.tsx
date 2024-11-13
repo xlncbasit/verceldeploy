@@ -54,14 +54,14 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
       
       setMessages([{
         role: 'assistant',
-        content: `Buzz🐝! Hi! I'm Fieldmo the Bee, your friendly ERP consultant, here to customize the ${params.moduleKey} module for you. I'm a bit of a curious bee so I'll keep asking you questions to find out more about requirements.<br/><br/> If you feel you have given enough information press the Deploy button and relax!`
+        content: `Buzz🐝! Hi! I'm Fieldmo the Bee, your friendly ERP consultant, here to customize the ${params.moduleKey} module for you. I'm a bit of a curious bee so I'll keep asking you questions to find out more about your requirements.<br/><br/> If you feel you have given enough information press the Deploy button and relax!`
       }]);
     } catch (error) {
       console.error('Error fetching summary:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
       setMessages([{
         role: 'assistant',
-        content: `Buzz🐝! Hi! I'm Fieldmo the Bee, your friendly ERP consultant, here to customize the ${params.moduleKey} module for you. I'm a bit of a curious bee so I'll keep asking you questions to find out more about requirements.<br/><br/> If you feel you have given enough information press the Deploy button and relax!`
+        content: `Buzz🐝! Hi! I'm Fieldmo the Bee, your friendly ERP consultant, here to customize the ${params.moduleKey} module for you. I'm a bit of a curious bee so I'll keep asking you questions to find out more about your requirements.<br/><br/> If you feel you have given enough information press the Deploy button and relax!`
       }]);
     } finally {
       setIsTyping(false);
@@ -154,7 +154,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
 
           setMessages(prev => [...prev, {
             role: 'assistant',
-            content: 'Great! The customization has been successfully applied.'
+            content: 'Great! The customization has been successfully applied. Return to the Fieldmobi portal, click on the Fieldmo icon on the top right corner and click on Refresh to see your changes.'
           }]);
           setAwaitingConfirmation(false);
         } else if (response === 'no') {

@@ -82,7 +82,9 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
       .replace(/\n/g, '<br/>') // Replace single newlines with single break
       .replace(/• /g, '• ') // Don't add break before bullets as they already have line breaks
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Make text bold
+      .replace(/\*([^\*]+)\*/g, '<em>$1</em>') // Make text italic
       .replace(/<br\/><br\/><br\/>/g, '<br/><br/>'); // Clean up any triple breaks
+      
       
   }
   

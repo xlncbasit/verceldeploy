@@ -83,7 +83,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
       .replace(/• /g, '• ') // Don't add break before bullets as they already have line breaks
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Make text bold
       .replace(/\*([^\*]+)\*/g, '<em>$1</em>') // Make text italic
-      .replace(/<br\/><br\/><br\/>/g, '<br/><br/>'); // Clean up any triple breaks
+      .replace(/<br\/><br\/><br\/>/g, '<br/><br/>'); // Clean up any triple breaks    
       
       
   }
@@ -182,6 +182,8 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to process request');
         }
+        
+        
 
         const data = await response.json();
         const formattedContent = formatMessageContent(data.response);
@@ -208,7 +210,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
   const isLastMessageFromAssistant = () => {
     return messages.length > 0 && messages[messages.length - 1].role === 'assistant';
   };
-
+  
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };

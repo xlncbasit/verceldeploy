@@ -1,4 +1,3 @@
-//src/components/Chat/ChatInterface.tsx
 import { useState, useEffect, useRef } from 'react';
 import { ConfigParams } from '@/types';
 import '@/styles/chat.css';
@@ -29,6 +28,17 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
   const avatarImages = {
     user: '/images/user.png',
     assistant: '/images/fieldmo.png',
+  };
+
+  const handleRedirect = () => {
+    const urlParams = new URLSearchParams({
+      org_key: params.orgKey || '',
+      user_key: params.userKey || '',
+      module_key: params.moduleKey || '',
+      industry: params.industry || '',
+      subindustry: params.subIndustry || ''
+    });
+    window.location.href = `http://localhost:3001/edit?${urlParams.toString()}`;
   };
 
   useEffect(() => {
@@ -74,20 +84,16 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
     fetchConfigSummary();
   }, [mounted]);
 
-  
-
   function formatMessageContent(content: string): string {
     return content
-      .replace(/\n{2,}/g, '<br/><br/>') // Replace multiple newlines with break
-      .replace(/\n/g, '<br/>') // Replace single newlines with single break
-      .replace(/• /g, '• ') // Don't add break before bullets as they already have line breaks
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Make text bold
-      .replace(/\*([^\*]+)\*/g, '<em>$1</em>') // Make text italic
-      .replace(/<br\/><br\/><br\/>/g, '<br/><br/>'); // Clean up any triple breaks    
-      
-      
+      .replace(/\n{2,}/g, '<br/><br/>')
+      .replace(/\n/g, '<br/>')
+      .replace(/• /g, '• ')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^\*]+)\*/g, '<em>$1</em>')
+      .replace(/<br\/><br\/><br\/>/g, '<br/><br/>');
   }
-  
+
   const handleFinalizeCustomization = async () => {
     setIsTyping(true);
     try {
@@ -102,22 +108,20 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
           params 
         })
       });
-
-      
-
+  
       const data = await response.json();
-      setConfigState({
-        currentConfig: data.currentConfig,
-        proposedConfig: data.proposedConfig,
-        requirementsSummary: data.summary
-      });
       
-      setPhase('review');
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: `Your customized configuration has been created successfully.`
-      }]);
-      setAwaitingConfirmation(true);
+      // Construct edit URL with current parameters
+      const editUrl = new URL('http://localhost:3001/edit');
+      editUrl.searchParams.set('org_key', params.orgKey);
+      editUrl.searchParams.set('user_key', params.userKey);
+      editUrl.searchParams.set('module_key', params.moduleKey);
+      editUrl.searchParams.set('industry', params.industry);
+      editUrl.searchParams.set('subindustry', params.subIndustry);
+  
+      // Redirect to edit URL
+      window.location.href = editUrl.toString();
+      
     } catch (error) {
       console.error('Error:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
@@ -154,9 +158,13 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
 
           setMessages(prev => [...prev, {
             role: 'assistant',
-            content: 'Great! The customization has been successfully applied. Return to the Fieldmobi portal, click on the Fieldmo icon on the top right corner and click on Refresh to see your changes.'
+            content: 'Changes applied successfully! Redirecting to editor...'
           }]);
           setAwaitingConfirmation(false);
+          
+          // Add slight delay before redirect
+          setTimeout(handleRedirect, 1500);
+          
         } else if (response === 'no') {
           setPhase('requirements');
           setConfigState(null);
@@ -182,8 +190,6 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to process request');
         }
-        
-        
 
         const data = await response.json();
         const formattedContent = formatMessageContent(data.response);
@@ -206,11 +212,10 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
 
   if (!mounted) return null;
 
-  // Function to check if the last message is from the assistant
   const isLastMessageFromAssistant = () => {
     return messages.length > 0 && messages[messages.length - 1].role === 'assistant';
   };
-  
+
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
@@ -305,7 +310,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
                   </div>
                 </div>
               )}
-              {isLastMessageFromAssistant() && phase === 'requirements' && !isTyping && messages.length > 1 && (
+               {isLastMessageFromAssistant() && phase === 'requirements' && !isTyping && messages.length > 1 && (
                 <div className="finalize-button-container">
                   <button 
                     className="finalize-button-chat"

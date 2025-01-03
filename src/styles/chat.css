@@ -246,6 +246,7 @@ input[type="text"]:focus::placeholder {
   overflow-y: auto;
 }
 
+
 .chat-messages {
   flex: 1;
   overflow-y: auto;

@@ -23,16 +23,32 @@ export class DirectoryManager {
   }
 
   /**
+   * Clean and validate parameters
+   */
+  private cleanParams(params: ConfigParams): ConfigParams {
+    return {
+      orgKey: params.orgKey?.trim() || '',
+      moduleKey: params.moduleKey?.trim() || '',
+      industry: params.industry?.replace(/\s+/g, '_').trim() || '',
+      subIndustry: params.subIndustry?.replace(/\s+/g, '_').trim() || '',
+      userKey: params.userKey?.trim() || ''
+    };
+  }
+
+  /**
    * Validate configuration parameters
    */
-  private validateParams(params: ConfigParams): void {
-    const { orgKey, moduleKey, industry } = params;
+  private validateParams(params: ConfigParams, requireIndustry: boolean = true): void {
+    console.log('\n=== Validating Parameters ===');
+    const cleanedParams = this.cleanParams(params);
+    console.log('Cleaned parameters:', cleanedParams);
     
-    if (!orgKey?.trim()) throw new Error('Organization key is required');
-    if (!moduleKey?.trim()) throw new Error('Module key is required');
-    if (!industry?.trim()) throw new Error('Industry is required');
+    if (!cleanedParams.orgKey) throw new Error('Organization key is required');
+    if (!cleanedParams.moduleKey) throw new Error('Module key is required');
+    if (requireIndustry && !cleanedParams.industry) throw new Error('Industry is required');
     
-    console.log('Parameters validated:', params);
+    console.log('Parameters validation successful');
+    console.log('============================\n');
   }
 
   /**
@@ -40,6 +56,7 @@ export class DirectoryManager {
    */
   public async ensureDirectories(params?: ConfigParams): Promise<void> {
     try {
+      console.log('\n=== Creating Directories ===');
       // Create base directories
       await this.createDirectory(this.userConfigDir);
       await this.createDirectory(this.industryConfigDir);
@@ -47,14 +64,16 @@ export class DirectoryManager {
 
       // If params are provided, create org and module directories
       if (params?.orgKey) {
-        const orgDir = path.join(this.userConfigDir, params.orgKey);
+        const cleanedParams = this.cleanParams(params);
+        const orgDir = path.join(this.userConfigDir, cleanedParams.orgKey);
         await this.createDirectory(orgDir);
 
-        if (params.moduleKey) {
-          const moduleDir = path.join(orgDir, params.moduleKey);
+        if (cleanedParams.moduleKey) {
+          const moduleDir = path.join(orgDir, cleanedParams.moduleKey);
           await this.createDirectory(moduleDir);
         }
       }
+      console.log('=========================\n');
     } catch (error) {
       console.error('Error ensuring directories:', error);
       throw error;
@@ -81,14 +100,31 @@ export class DirectoryManager {
    */
   public getUserConfigFilePath(params: ConfigParams, fileType: 'config' | 'codesetvalues'): string {
     try {
-      this.validateParams(params);
-      const { orgKey, moduleKey } = params;
+      console.log('\n=== Getting Config File Path ===');
+      console.log('Input parameters:', params);
+      console.log('File type:', fileType);
+
+      // For checking existing config, we don't require industry
+      const requireIndustry = fileType === 'codesetvalues';
+      this.validateParams(params, requireIndustry);
+
+      const cleanedParams = this.cleanParams(params);
       const fileName = fileType === 'config' ? 'config.csv' : 'codesetvalues.csv';
-      const filePath = path.join(this.userConfigDir, orgKey, moduleKey, fileName);
-      console.log(`Getting user config file path: ${filePath}`);
+      
+      const filePath = path.join(
+        this.userConfigDir,
+        cleanedParams.orgKey,
+        cleanedParams.moduleKey,
+        fileName
+      );
+
+      console.log('Generated file path:', filePath);
+      console.log('============================\n');
+      
       return filePath;
     } catch (error: unknown) {
       const err = error as DirectoryError;
+      console.error('Error generating file path:', err);
       throw new Error(`Failed to generate file path: ${err.message}`);
     }
   }
@@ -98,22 +134,38 @@ export class DirectoryManager {
    */
   public async checkUserConfig(orgKey: string, moduleKey: string): Promise<boolean> {
     try {
+      console.log('\n=== Checking User Config ===');
+      console.log('Organization Key:', orgKey);
+      console.log('Module Key:', moduleKey);
+
       if (!orgKey?.trim() || !moduleKey?.trim()) {
         throw new Error('Invalid parameters for config check');
       }
 
-      const configPath = this.getUserConfigFilePath(
-        { orgKey, moduleKey } as ConfigParams,
-        'config'
-      );
+      // Create minimal params for file path generation
+      const params: ConfigParams = {
+        orgKey: orgKey.trim(),
+        moduleKey: moduleKey.trim(),
+        industry: 'dummy', // Not required for config check
+        subIndustry: '',
+        userKey: ''
+      };
+
+      const configPath = this.getUserConfigFilePath(params, 'config');
       
-      await fs.access(configPath);
-      console.log('User config exists at:', configPath);
-      return true;
+      try {
+        await fs.access(configPath);
+        console.log('Config exists at:', configPath);
+        console.log('=========================\n');
+        return true;
+      } catch {
+        console.log('Config does not exist at:', configPath);
+        console.log('=========================\n');
+        return false;
+      }
     } catch (error: unknown) {
       const err = error as DirectoryError;
       if (err.code === 'ENOENT') {
-        console.log('User config does not exist');
         return false;
       }
       throw err;

@@ -38,7 +38,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
       industry: params.industry || '',
       subindustry: params.subIndustry || ''
     });
-    window.location.href = `http://localhost:3001/edit?${urlParams.toString()}`;
+    window.location.href = `https://customizer.fieldmobi.ai/edit?${urlParams.toString()}`;
   };
 
   useEffect(() => {

@@ -4,14 +4,19 @@ import type { ConfigData } from '@/types';
 import fs from 'fs/promises';
 
 export class ConfigParser {
-  static async parseCSV(filePath: string): Promise<ConfigData[]> {
+  static async parseCSV(filePath: string): Promise<{data: ConfigData[], rawContent:string}> {
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      return parse(content, {
+      const data = parse(content, {
         columns: true,
         skip_empty_lines: true,
-        trim: true
+        trim: true,
+        from_line: 2 // Start parsing from line 2 to preserve empty first line
       });
+      return {
+        data,
+        rawContent: content
+      };
     } catch (error) {
       console.error('Error parsing CSV:', error);
       throw error;

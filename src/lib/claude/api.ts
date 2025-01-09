@@ -710,7 +710,7 @@ You're having a friendly chat about making their system better, not delivering a
       const customizedrawText = response.content[0].text
       .replace(/'\s*\+\s*'/g, ' ')
       .replace(/\\n/g, '\n')
-      .trim()
+      
       console.log('rawwwtext:', customizedrawText)
       return customizedrawText;
     }

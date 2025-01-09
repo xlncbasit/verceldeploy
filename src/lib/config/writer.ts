@@ -43,7 +43,7 @@ export class ConfigWriter {
     const timestamp = new Date().toISOString()
       .replace(/[:\-T]/g, '')
       .slice(0, 14);
-    return `${sanitizedUserKey}_${timestamp}.csv`;
+    return `config.csv`;
   }
 
   private async writeBackup(content: string, directory: string, filename: string): Promise<void> {

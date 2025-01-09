@@ -112,7 +112,7 @@ export default function ChatInterface({ params }: { params: ConfigParams }) {
       const data = await response.json();
       
       // Construct edit URL with current parameters
-      const editUrl = new URL('http://localhost:3001/edit');
+      const editUrl = new URL('https://customizer.fieldmobi.ai/edit');
       editUrl.searchParams.set('org_key', params.orgKey);
       editUrl.searchParams.set('user_key', params.userKey);
       editUrl.searchParams.set('module_key', params.moduleKey);

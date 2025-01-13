@@ -23,6 +23,57 @@ export class ConfigWriter {
     this.secondaryUserDir = 'C:/Users/ASUS/Downloads/project-bolt-sb1-sb1v1q/project/data/users';
   }
 
+
+  private validateHeaders(csvContent: string, orgKey: string): void {
+    const lines = csvContent.split('\n');
+    if (lines.length < 1) {
+      throw new Error('Invalid CSV format: insufficient lines');
+    }
+
+    const headerCells = lines[0].split(',');
+    if (headerCells.length < 3) {
+      throw new Error('Invalid CSV format: insufficient columns in header');
+    }
+
+    // Validate B1 cell has "Customization"
+    if (headerCells[1] !== 'Customization') {
+      throw new Error('Invalid header: Cell B1 must contain "Customization"');
+    }
+
+    // Validate C1 cell has the correct orgKey
+    if (headerCells[2] !== orgKey) {
+      throw new Error(`Invalid header: Cell C1 must contain the organization key "${orgKey}"`);
+    }
+
+    console.log('Header validation passed successfully');
+  }
+
+  private modifyHeaders(csvContent: string, orgKey: string): string {
+    const lines = csvContent.split('\n');
+    
+    if (lines.length < 1) {
+      throw new Error('Invalid CSV format: insufficient lines');
+    }
+
+    const headerCells = lines[0].split(',');
+    
+    if (headerCells.length < 3) {
+      throw new Error('Invalid CSV format: insufficient columns in header');
+    }
+
+    // Make the required changes:
+    // - Cell B1 (index 1): Change "Application" to "Customization"
+    // - Cell C1 (index 2): Insert orgKey
+    headerCells[1] = 'Customization';
+    headerCells[2] = orgKey;
+
+    // Reconstruct the header line
+    lines[0] = headerCells.join(',');
+
+    // Reconstruct the CSV content
+    return lines.join('\n');
+  }
+
   private async ensureSecondaryDirectories(params: ConfigParams): Promise<void> {
     const { orgKey, moduleKey } = params;
     const orgDir = path.join(this.secondaryUserDir, orgKey);
@@ -88,44 +139,26 @@ export class ConfigWriter {
 
   async writeFiles(params: ConfigParams, parsedResponse: ParsedResponse): Promise<void> {
     try {
-      // Ensure primary directories are created
+      // Ensure directories are created
       await this.directoryManager.ensureDirectories(params);
 
-      // Write to primary location
-      const configPath = this.directoryManager.getUserConfigFilePath(params, 'config');
-      await fs.writeFile(configPath, parsedResponse.configuration, 'utf-8');
-      console.log(`Configuration written to primary location: ${configPath}`);
+      // Modify headers in the configuration content
+      const modifiedConfig = this.modifyHeaders(parsedResponse.configuration, params.orgKey);
 
+      // Validate headers before writing
+      this.validateHeaders(modifiedConfig, params.orgKey);
+
+      // Write configuration file
+      const configPath = this.directoryManager.getUserConfigFilePath(params, 'config');
+      await fs.writeFile(configPath, modifiedConfig, 'utf-8');
+      console.log(`Configuration written to: ${configPath}`);
+
+      // Write codesets file if present
       if (parsedResponse.codesets) {
         const codesetPath = this.directoryManager.getUserConfigFilePath(params, 'codesetvalues');
         await fs.writeFile(codesetPath, parsedResponse.codesets, 'utf-8');
-        console.log(`Codesets written to primary location: ${codesetPath}`);
+        console.log(`Codesets written to: ${codesetPath}`);
       }
-
-      // Write to secondary location
-      await this.writeToSecondaryLocation(params, parsedResponse);
-
-      // Create backups if userKey exists
-      if (params.userKey) {
-        const backupFilename = this.createBackupFilename(params.userKey);
-        
-        // Backup config file
-        await this.writeBackup(
-          parsedResponse.configuration, 
-          this.configBackupPath,
-          backupFilename
-        );
-
-        // Backup codeset file if present
-        if (parsedResponse.codesets) {
-          await this.writeBackup(
-            parsedResponse.codesets,
-            this.codesetBackupPath,
-            backupFilename
-          );
-        }
-      }
-
     } catch (error) {
       console.error('Error writing files:', error);
       throw error;

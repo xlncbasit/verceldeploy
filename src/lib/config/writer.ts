@@ -48,6 +48,25 @@ export class ConfigWriter {
     console.log('Header validation passed successfully');
   }
 
+  private validateCodesetHeaders(codesetContent: string, orgKey: string): void {
+    const lines = codesetContent.split('\n');
+    if (lines.length < 1) {
+      throw new Error('Invalid codeset format: insufficient lines');
+    }
+
+    const headerCells = lines[0].split(',');
+    if (headerCells.length < 5) {
+      throw new Error('Invalid codeset format: insufficient columns');
+    }
+
+    // Validate E1 cell has orgKey
+    if (headerCells[4] !== orgKey) {
+      throw new Error(`Invalid codeset header: Cell E1 must contain the organization key "${orgKey}"`);
+    }
+
+    console.log('Codeset header validation passed');
+  }
+
   private modifyHeaders(csvContent: string, orgKey: string): string {
     const lines = csvContent.split('\n');
     
@@ -155,6 +174,7 @@ export class ConfigWriter {
 
       // Write codesets file if present
       if (parsedResponse.codesets) {
+        this.validateCodesetHeaders(parsedResponse.codesets, params.orgKey);
         const codesetPath = this.directoryManager.getUserConfigFilePath(params, 'codesetvalues');
         await fs.writeFile(codesetPath, parsedResponse.codesets, 'utf-8');
         console.log(`Codesets written to: ${codesetPath}`);

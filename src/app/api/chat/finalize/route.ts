@@ -3,21 +3,27 @@ import { NextResponse } from 'next/server';
 import { ClaudeAPI } from '@/lib/claude/api';
 import { DirectoryManager } from '@/lib/utils/directory';
 import { ConfigValidator } from '@/lib/utils/validation';
+import { ConfigSyncManager } from '@/lib/utils/configSync';
 import type { ChatMessage, ConfigParams, ConfigFiles } from '@/types';
 
-// Define response types
 interface ClaudeResponse {
   configuration: string;
   explanation: string;
   codesets?: string;
 }
 
-// Create a timeout promise
-const timeout = (ms: number) => new Promise((_, reject) => {
-  setTimeout(() => reject(new Error(`Request timed out after ${ms}ms`)), ms);
-});
+interface SyncSummary {
+  groupName: string;
+  moduleType: string;
+  syncedModules: string[];
+  timestamp: string;
+}
 
-// Define response headers
+const timeout = (ms: number): Promise<never> => 
+  new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(`Request timed out after ${ms}ms`)), ms);
+  });
+
 const responseHeaders = {
   'Content-Type': 'application/json',
   'Cache-Control': 'no-cache, no-transform',
@@ -25,7 +31,6 @@ const responseHeaders = {
 
 export async function POST(request: Request) {
   try {
-    // Parse request with timeout
     const body = await Promise.race([
       request.json(),
       timeout(5000)
@@ -37,7 +42,7 @@ export async function POST(request: Request) {
     const { conversationHistory, params } = body;
 
     // Validate input
-    if (!conversationHistory || !params) {
+    if (!conversationHistory?.length || !params) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400, headers: responseHeaders }
@@ -53,20 +58,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // Initialize managers
     const dirManager = new DirectoryManager();
+    const configSync = new ConfigSyncManager();
     const claude = new ClaudeAPI();
 
-    // Get both configuration and codeset files
     let files: ConfigFiles;
     try {
       files = await dirManager.getRawConfigurations(params);
       console.log('Retrieved configuration files:', {
         type: files.type,
         configLength: files.configContent.length,
-        codesetLength: files.codesetContent.length,
-        configContent: files.configContent,
-        codesetContent: files.codesetContent
+        codesetLength: files.codesetContent.length
       });
     } catch (error) {
       console.error('Error retrieving configurations:', error);
@@ -76,15 +78,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Build requirements summary
     const requirementsSummary = conversationHistory
       .filter(msg => msg.role === 'user')
-      
       .map(msg => msg.content.trim())
       .filter(Boolean)
       .join('\n\n');
 
-    // Process with Claude using both files with timeout
     let claudeResponse: ClaudeResponse;
     try {
       claudeResponse = await Promise.race([
@@ -97,8 +96,7 @@ export async function POST(request: Request) {
         timeout(150000)
       ]) as ClaudeResponse;
 
-      // Validate Claude response
-      if (!claudeResponse || !claudeResponse.configuration) {
+      if (!claudeResponse?.configuration) {
         throw new Error('Invalid response structure from Claude');
       }
 
@@ -118,7 +116,27 @@ export async function POST(request: Request) {
       );
     }
 
-    // Structure the response
+    // Write new configuration first
+    await dirManager.writeConfigurations(
+      params,
+      claudeResponse.configuration,
+      claudeResponse.codesets || files.codesetContent
+    );
+
+    let syncSummary: SyncSummary | null = null;
+    try {
+      await configSync.syncGroupConfigurations(params, {
+        config: claudeResponse.configuration,
+        codesets: claudeResponse.codesets
+      });
+
+      syncSummary = await configSync.getSyncSummary(params);
+      console.log('Group synchronization completed:', syncSummary);
+    } catch (error) {
+      console.error('Error in group synchronization:', error);
+      syncSummary = null;
+    }
+
     const response = {
       currentConfig: {
         config: files.configContent,
@@ -130,12 +148,20 @@ export async function POST(request: Request) {
         codesets: claudeResponse.codesets || files.codesetContent,
       },
       summary: claudeResponse.explanation,
+      groupSync: syncSummary ? {
+        status: 'completed',
+        details: syncSummary
+      } : {
+        status: 'skipped',
+        details: 'Group synchronization failed or not required'
+      },
       success: true
     };
 
     console.log('Finalization completed successfully:', {
       type: files.type,
-      hasCodesetUpdates: !!claudeResponse.codesets
+      hasCodesetUpdates: !!claudeResponse.codesets,
+      groupSyncCompleted: !!syncSummary
     });
 
     return NextResponse.json(response, { headers: responseHeaders });
@@ -158,4 +184,4 @@ export async function POST(request: Request) {
 // Route configuration
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // 3 minutes maximum
+export const maxDuration = 300; // 5 minutes maximum for complex syncs

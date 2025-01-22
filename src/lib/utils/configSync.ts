@@ -122,26 +122,33 @@ export class ConfigSyncManager {
       }
     }
   };
+  
 
-  private async parseConfigCSV(csvContent: string): Promise<{ headers: string[], data: ParsedConfigRow[] }> {
-    return new Promise((resolve, reject) => {
-      if (!csvContent?.trim()) {
-        console.error('Empty CSV content received');
-        throw new Error('Empty CSV content');
-      }
-  
-      const lines = csvContent.split('\n');
-      const headers = lines.slice(0, 5);
-      const contentLines = lines.slice(5);
-  
-      Papa.parse(contentLines.join('\n'), {
-        header: false,
-        skipEmptyLines: 'greedy',
-        complete: (results) => {
-          if (!results.data?.length) {
-            console.error('No valid data rows found in CSV');
-            return reject(new Error('No valid data rows found'));
-          }
+  private async parseConfigCSV(csvContent: string, params: ConfigParams): Promise<{ headers: string[], data: ParsedConfigRow[] }> {
+  return new Promise((resolve, reject) => {
+    if (!csvContent?.trim()) {
+      throw new Error('Empty CSV content');
+    }
+
+    const lines = csvContent.split('\n');
+    const headers = lines.slice(0, 5);
+    const contentLines = lines.slice(5);
+
+    // Process module line
+    const moduleLine = headers[1].split(',');
+    if (moduleLine[0]?.toLowerCase().trim() === 'module') {
+      moduleLine[1] = 'Customization';
+      moduleLine[2] = params.orgKey;
+      headers[1] = moduleLine.join(',');
+    }
+
+    Papa.parse(contentLines.join('\n'), {
+      header: false,
+      skipEmptyLines: 'greedy',
+      complete: (results) => {
+        if (!results.data?.length) {
+          return reject(new Error('No valid data rows found'));
+        }
   
           const rows = results.data as unknown[][];
           
@@ -195,6 +202,7 @@ export class ConfigSyncManager {
 
   private writeConfigCSV(headers: string[], data: ParsedConfigRow[]): string {
     // Convert data rows to CSV
+    console.log('Writing headers:', headers);
     const dataContent = Papa.unparse(data.map(row => ([
       row.fieldCode,
       row.type,
@@ -230,7 +238,7 @@ export class ConfigSyncManager {
     });
   
     // Combine headers and data
-    return [...headers, dataContent].join('\n');
+    return [...headers, Papa.unparse(data)].join('\n');
   }
 
   private getModuleInfo(moduleKey: string): {
@@ -250,7 +258,8 @@ export class ConfigSyncManager {
     sourceModule: ModuleConfig,
     targetModule: ModuleConfig,
     sourceConfig: ParsedConfigRow[],
-    targetConfig: ParsedConfigRow[]
+    targetConfig: ParsedConfigRow[],
+    params: ConfigParams
   ): Promise<ParsedConfigRow[]> {
     console.log('Starting syncModule', {
       sourceModule: sourceModule.name,
@@ -260,22 +269,25 @@ export class ConfigSyncManager {
     });
     
     const updatedConfig: ParsedConfigRow[] = JSON.parse(JSON.stringify(targetConfig));
+
+    updatedConfig.forEach(row => {
+      if (row.fieldCode?.toLowerCase() === 'module'){
+        row.type = 'Customization';
+        row.data = params.orgKey;
+      }
+    })
     
     // Handle NEW fields
-    const newFields = sourceConfig.filter(row => {
-      const isNew = row.customization === 'NEW' && row.fieldCode && row.data;
-      console.log('Checking for NEW field:', { row, isNew });
-      return isNew;
-    });
+    const newFields = sourceConfig.filter(row => row.customization === 'NEW' && row.fieldCode && row.data);
 
-    console.log(`Found ${newFields.length} NEW fields to process`);
+    // console.log(`Found ${newFields.length} NEW fields to process`);
 
     for (const newField of newFields) {
-      console.log(`Processing new field: ${newField.fieldCode}`, newField);
+      // console.log(`Processing new field: ${newField.fieldCode}`, newField);
       const dataValue = newField.data;
       
       const existingField = updatedConfig.find(row => row.data === dataValue);
-      console.log('Checking for existing field:', { dataValue, exists: !!existingField });
+      // console.log('Checking for existing field:', { dataValue, exists: !!existingField });
       
       if (!existingField) {
         updatedConfig.push({
@@ -348,7 +360,7 @@ export class ConfigSyncManager {
       }
   
       // Parse source configuration with headers
-      const sourceConfigWithHeaders = await this.parseConfigCSV(updatedConfig.config);
+      const sourceConfigWithHeaders = await this.parseConfigCSV(updatedConfig.config, params);
       console.log('Parsed source configuration with headers');
   
       const dependentModules = Object.entries(group.modules)
@@ -359,13 +371,14 @@ export class ConfigSyncManager {
         
         const targetParams = { ...params, moduleKey };
         const targetFiles = await this.dirManager.getRawConfigurations(targetParams);
-        const targetConfigWithHeaders = await this.parseConfigCSV(targetFiles.configContent);
+        const targetConfigWithHeaders = await this.parseConfigCSV(targetFiles.configContent, params);
   
         const updatedTargetConfig = await this.syncModule(
           moduleConfig,
           targetModule,
           sourceConfigWithHeaders.data,
-          targetConfigWithHeaders.data
+          targetConfigWithHeaders.data,
+          params
         );
   
         // Write configuration preserving original headers

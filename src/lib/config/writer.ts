@@ -22,48 +22,61 @@ export class ConfigWriter {
     this.secondaryUserDir = 'C:/Users/ASUS/Downloads/project-bolt-sb1-sb1v1q/project/data/users';
   }
 
-  private validateHeaders(csvContent: string, orgKey: string): void {
-    const lines = csvContent.split('\n');
-    if (lines.length < 1) {
-      throw new Error('Invalid CSV format: insufficient lines');
+  private processCodesetContent(content: string, orgKey: string): string {
+    const lines = content.split('\n');
+    const processedLines = [];
+    
+    // Process the first line (header)
+    if (lines.length > 0) {
+        // Replace FIELDMOBI_DEFAULT with organization in header
+        const headerLine = lines[0].replace('FIELDMOBI_DEFAULT', '${orgKey}');
+        processedLines.push(headerLine);
     }
 
-    const headerCells = lines[0].split(',');
-    if (headerCells.length < 3) {
-      throw new Error('Invalid CSV format: insufficient columns in header');
-    }
-
-    // Validate B1 cell has "Customization"
-    if (headerCells[1] !== 'Customization') {
-      throw new Error('Invalid header: Cell B1 must contain "Customization"');
-    }
-
-    // Validate C1 cell has the correct orgKey
-    if (headerCells[2] !== orgKey) {
-      throw new Error(`Invalid header: Cell C1 must contain the organization key "${orgKey}"`);
-    }
-
-    console.log('Header validation passed successfully');
-  }
-
-  private validateCodesetContent(content: string, orgKey: string): void {
-    const lines = content.split('\n').map(line => line.trim()).filter(Boolean);
-    if (lines.length < 1) {
-      throw new Error('Invalid codeset format: empty content');
-    }
-
-    // For each row where column A contains "codeset"
-    lines.forEach((line, index) => {
-      const cells = line.split(',').map(cell => cell.trim());
-      if (cells[0]?.toLowerCase() === 'codeset') {
-        // Check if column E (index 4) contains the orgKey
-        if (cells[4] !== orgKey) {
-          throw new Error(
-            `Invalid codeset format: Row ${index + 1} has "codeset" in column A but "${cells[4] || ''}" in column E (expected "${orgKey}")`
-          );
+    // Process rest of the lines
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        
+        if (!line.trim()) {
+            processedLines.push(line);
+            continue;
         }
+
+        const cells = line.split(',').map(cell => cell.trim());
+        
+        // Process numbered lines (field lines)
+        if (/^\d+/.test(cells[0])) {
+            // Extract fields
+            const type = cells[1];     // e.g., INGREDIENT_TYPE
+            const code = cells[4];      // e.g., RAW_MATERIALS
+            const description = cells[5]; // e.g., Raw Materials
+
+            // Create new line with type, code, description and orgKey
+            const newLine = `${type},${code},${description},,${orgKey}`;
+            processedLines.push(newLine);
+        } else {
+            // For non-numbered lines, replace FIELDMOBI_DEFAULT with orgKey
+            const modifiedLine = line.replace('FIELDMOBI_DEFAULT', orgKey);
+            processedLines.push(modifiedLine);
+        }
+    }
+
+    return processedLines.join('\n');
+}
+
+  private async verifyCodesetContent(path: string, orgKey: string): Promise<void> {
+    try {
+      const content = await fs.readFile(path, 'utf8');
+      const firstLine = content.split('\n')[0];
+      const cells = firstLine.split(',');
+      if (cells[5] !== orgKey) {
+        console.warn('Warning: Cell E1 does not contain the expected orgKey');
+        console.log('Actual E1 content:', cells[4]);
+        console.log('Expected orgKey:', orgKey);
       }
-    });
+    } catch (error) {
+      console.error('Error verifying codeset content:', error);
+    }
   }
 
   private modifyHeaders(csvContent: string, orgKey: string): string {
@@ -88,70 +101,48 @@ export class ConfigWriter {
     return lines.join('\n');
   }
 
-  private modifyCodesetContent(content: string, orgKey: string): string {
-    const lines = content.split('\n');
-    const modifiedLines = lines.map(line => {
-      const cells = line.split(',').map(cell => cell.trim());
-      if (cells[0]?.toLowerCase() === 'codeset') {
-        cells[4] = orgKey;
-      }
-      return cells.join(',');
-    });
-    return modifiedLines.join('\n');
-  }
-
   async writeFiles(params: ConfigParams, parsedResponse: ParsedResponse): Promise<void> {
     try {
-      // Ensure directories exist
       await this.directoryManager.ensureDirectories(params);
       
       // Handle configuration file
       const modifiedConfig = this.modifyHeaders(parsedResponse.configuration, params.orgKey);
-      this.validateHeaders(modifiedConfig, params.orgKey);
       const configPath = this.directoryManager.getUserConfigFilePath(params, 'config');
       await fs.writeFile(configPath, modifiedConfig, 'utf-8');
       console.log('Configuration file written successfully');
 
-      // Handle codesets if present and not undefined
-      const codesets = parsedResponse.codesets;
-      if (typeof codesets === 'string') {
-        // Check for various "no changes" messages
-        const noChangeIndicators = [
-          "Previous codeset content remains unchanged",
-          "No changes to existing codesets required",
-          "Previous",
-          "remain",
-          "exactly the same",
-          "codeset entries remain"
-        ];
-
-        // If any of these indicators are found, skip codeset writing
-        if (noChangeIndicators.some(indicator => 
-            codesets.toLowerCase().includes(indicator.toLowerCase()))) {
-          console.log("Detected no changes required for codesets - skipping codeset update");
-          return;
-        }
-
-        // Only proceed if we have actual codeset changes
-        const modifiedCodesets = this.modifyCodesetContent(codesets, params.orgKey);
-        this.validateCodesetContent(modifiedCodesets, params.orgKey);
+      // Handle codesets if present
+      if (typeof parsedResponse.codesets === 'string') {
+        console.log('Processing codesets with organization key:', params.orgKey);
         
+        // Process codeset content to ensure orgKey is present
+        const processedCodesets = this.processCodesetContent(parsedResponse.codesets, params.orgKey);
+        console.log('Processed codesets:', processedCodesets);
+
         const codesetPath = this.directoryManager.getUserConfigFilePath(params, 'codesetvalues');
-        await fs.writeFile(codesetPath, modifiedCodesets, 'utf-8');
-        console.log('New codeset content written successfully');
+        await fs.writeFile(codesetPath, processedCodesets, 'utf-8');
+        console.log('Codeset file written successfully with organization key');
+
+        // Log the first few lines of the written file for verification
+        const writtenContent = await fs.readFile(codesetPath, 'utf8');
+        console.log('Written codeset content:', writtenContent.split('\n').slice(0, 5).join('\n'));
       }
 
-      // Create backups if needed
+      // Handle backups
       if (params.userKey) {
         const backupFilename = this.createBackupFilename(params.userKey);
         await this.writeBackup(modifiedConfig, this.configBackupPath, backupFilename);
         
         if (parsedResponse.codesets) {
-          await this.writeBackup(
-            parsedResponse.codesets, 
-            this.codesetBackupPath, 
-            backupFilename
-          );
+          console.log('Processing codesets for organization:', params.orgKey);
+          const processedCodesets = this.processCodesetContent(parsedResponse.codesets, params.orgKey);
+          const codesetPath = this.directoryManager.getUserConfigFilePath(params, 'codesetvalues');
+          
+          await fs.writeFile(codesetPath, processedCodesets, 'utf-8');
+          console.log('Codeset file written, verifying content...');
+          
+          // Verify the content after writing
+          await this.verifyCodesetContent(codesetPath, params.orgKey);
         }
       }
 
@@ -159,7 +150,9 @@ export class ConfigWriter {
       if (this.secondaryUserDir) {
         await this.writeToSecondaryLocation(params, {
           configuration: modifiedConfig,
-          codesets: parsedResponse.codesets
+          codesets: parsedResponse.codesets ? 
+            this.processCodesetContent(parsedResponse.codesets, params.orgKey) : 
+            undefined
         });
       }
 
@@ -174,17 +167,17 @@ export class ConfigWriter {
     const timestamp = new Date().toISOString()
       .replace(/[:\-T]/g, '')
       .slice(0, 14);
-    return `config.csv`;
+    return `config_${sanitizedUserKey}_${timestamp}.csv`;
   }
 
   private async writeBackup(content: string, directory: string, filename: string): Promise<void> {
     try {
+      await fs.mkdir(directory, { recursive: true });
       const backupPath = path.join(directory, filename);
       await fs.writeFile(backupPath, content, 'utf-8');
       console.log(`Backup written to: ${backupPath}`);
     } catch (error) {
       console.error(`Error writing backup to ${directory}:`, error);
-      // Don't throw error for backup failures
     }
   }
 
@@ -229,68 +222,6 @@ export class ConfigWriter {
     } catch (error) {
       console.error('Error creating secondary directories:', error);
       throw error;
-    }
-  }
-
-  async checkSecondaryConfig(orgKey: string, moduleKey: string): Promise<boolean> {
-    try {
-      const configPath = path.join(this.secondaryUserDir, orgKey, moduleKey, 'config.csv');
-      await fs.access(configPath);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async getSecondaryConfig(orgKey: string, moduleKey: string): Promise<{
-    configContent: string;
-    codesetContent: string;
-  }> {
-    try {
-      const configPath = path.join(this.secondaryUserDir, orgKey, moduleKey, 'config.csv');
-      const codesetPath = path.join(this.secondaryUserDir, orgKey, moduleKey, 'codesetvalues.csv');
-
-      const [configContent, codesetContent] = await Promise.all([
-        fs.readFile(configPath, 'utf-8'),
-        fs.readFile(codesetPath, 'utf-8').catch(() => 'codeset,value\n')
-      ]);
-
-      return { configContent, codesetContent };
-    } catch (error) {
-      console.error('Error reading secondary config:', error);
-      throw error;
-    }
-  }
-
-  async cleanupOldBackups(retentionDays: number = 30): Promise<void> {
-    try {
-      const now = Date.now();
-      const maxAge = retentionDays * 24 * 60 * 60 * 1000;
-
-      const cleanDirectory = async (dirPath: string): Promise<void> => {
-        const files = await fs.readdir(dirPath);
-        for (const file of files) {
-          if (!file.endsWith('.csv')) continue;
-          
-          const filePath = path.join(dirPath, file);
-          const stats = await fs.stat(filePath);
-          
-          if (now - stats.mtimeMs > maxAge) {
-            await fs.unlink(filePath);
-            console.log(`Deleted old backup: ${file}`);
-          }
-        }
-      };
-
-      await Promise.all([
-        cleanDirectory(this.configBackupPath),
-        cleanDirectory(this.codesetBackupPath)
-      ]);
-
-      console.log('Backup cleanup completed');
-    } catch (error) {
-      console.error('Error cleaning up backups:', error);
-      // Don't throw for cleanup failures
     }
   }
 }

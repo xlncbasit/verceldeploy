@@ -325,15 +325,14 @@ You're having a friendly chat about making their system better, not delivering a
       }
     }
 
-    async processFinalization(
+    public async processFinalization(
       requirementsSummary: string,
       rawConfig: string,
       rawCodesets: string,
       params: ConfigParams
     ): Promise<{
       configuration: string;
-      
-      codesets: string;
+      codesets?: string;
     }> {
       try {
         const finalizationPrompt = `${this.systemInstructions}
@@ -345,7 +344,7 @@ You're having a friendly chat about making their system better, not delivering a
   [Complete CSV content preserving structure and format]
 
   CODESETS:
-  [Complete CSV content preserving structure and format if modified]
+  [Complete CSV content preserving structure and format only if modified or new codesets are created, otherwise preserve the original data]
 
   No other text, explanations, or sections are allowed in the response.
 
@@ -536,7 +535,7 @@ You're having a friendly chat about making their system better, not delivering a
 
         console.log('Raw response:', response);
         const content = this.extractContent(response);
-        const sections = this.parseResponse(content);
+        const sections = this.parseResponse(content, params.orgKey);
 
         const configWriter = new ConfigWriter();
         await configWriter.writeFiles(params, sections);
@@ -557,69 +556,77 @@ You're having a friendly chat about making their system better, not delivering a
       }
     }
 
-    public parseResponse(response: string): {
-      configuration: string;
-      codesets?: string;
-    } {
-      // Initialize empty results
+    
+
+    // In ClaudeAPI class
+    private parseResponse(response: string, orgKey: string): { configuration: string; codesets?: string } {
       let configuration = '';
       let codesets = undefined;
     
       try {
-        // Clean up the response text
         const cleanText = response
-          .replace(/^\s*[\[\]]\s*/gm, '')  // Remove brackets from section markers
-          .replace(/\r\n/g, '\n');         // Normalize line endings
+          .replace(/^\s*[\[\]]\s*/gm, '')
+          .replace(/\r\n/g, '\n');
     
-        // Split response into sections using regex for section headers
         const sections = cleanText.split(/(?=^CONFIGURATION:|^CODESETS:)/im);
     
-        // Process each section
         sections.forEach(section => {
           const trimmedSection = section.trim();
           
-          // Handle Configuration section
           if (/^CONFIGURATION:/i.test(trimmedSection)) {
-            configuration = trimmedSection
-              .replace(/^CONFIGURATION:\s*/i, '')  // Remove header with any following whitespace
+            let configLines = trimmedSection
+              .replace(/^CONFIGURATION:\s*/i, '')
               .trim()
               .split('\n')
-              .filter(line => line.trim() !== '')  // Remove empty lines
-              .join('\n');
+              .filter(line => line.trim() !== '');
+    
+            // Process module line
+            configLines = configLines.map(line => {
+              const cells = line.split(',');
+              if (cells[0]?.trim().toLowerCase() === 'module') {
+                cells[1] = 'Customization';
+                cells[2] = orgKey;
+                return cells.join(',');
+              }
+              return line;
+            });
+    
+            configuration = configLines.join('\n');
           }
-          
-          // Handle Codesets section
           else if (/^CODESETS:/i.test(trimmedSection)) {
-            codesets = trimmedSection
-              .replace(/^CODESETS:\s*/i, '')  // Remove header with any following whitespace
+            let codesetLines = trimmedSection
+              .replace(/^CODESETS:\s*/i, '')
               .trim()
               .split('\n')
-              .filter(line => line.trim() !== '')  // Remove empty lines
-              .join('\n');
+              .filter(line => line.trim() !== '');
+    
+            // Process codeset line
+            codesetLines = codesetLines.map(line => {
+              const cells = line.split(',');
+              if (cells[0]?.trim().toLowerCase() === 'codeset') {
+                cells[4] = orgKey;
+                return cells.join(',');
+              }
+              return line;
+            });
+    
+            codesets = codesetLines.join('\n');
           }
         });
     
-        // Debug logging
-        console.log('Parsed Configuration:', configuration);
-        console.log('Parsed Codesets:', codesets);
-
-    
-        // Validate configuration is not empty
         if (!configuration) {
           throw new Error('Configuration section is missing or empty');
         }
     
-        // Return parsed sections
-        return {
-          configuration,
-          codesets: codesets || undefined  // Only include codesets if present
-        };
+        return { configuration, codesets };
     
       } catch (error) {
         console.error('Error parsing Claude response:', error);
-        throw new Error(`Failed to parse response: `);
+        throw error;
       }
     }
+    
+    
     
     
 

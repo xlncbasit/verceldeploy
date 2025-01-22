@@ -1,4 +1,3 @@
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 module,Customization,ACT_00000141,Product Catalog,FM_MATERIAL_OBJECT_PRODUCTLITE_MANAGER,Database,fmmaterial,Collection,fmproducts,account_field,ACCOUNT_KEY,type_field,DATA_TYPE,type_value,PRODUCTS,key_field,fieldCode001%AUTO#PRO#SEQ#8,display_fields,fieldCode001#fieldCode002#fieldCode003,datatype_key,fieldCode002,project_key,NONE,team_key,NONE,total_fields,NONE,alert_key,fieldCode035%Pending%Ready#Active%Approved%Service#Defect%Inactive#Expired%Hold,chart_pie,fieldCode002,chart_column,fieldCode036,record_type,OBJECT
 access,CREATE,ROLES#ADMIN#MANAGER,EDIT,ROLES#MANAGER,DELETE,ROLES#MANAGER,UPLOAD,ROLES#MANAGER,,,,,,,,,,,,,,,,,,,,,,,,,,
 Field Code,field_type,data,label,visibility,message,default,validation,list_type,list_value,multi_group,hidden,Link Setup,Update Setup,FILTER,SEARCH,SORT,MOBILE,DETAIL,CREATE,EDIT,SELECT,LIST,MAP,CARD,REPORT,Customization,,,,,,,,

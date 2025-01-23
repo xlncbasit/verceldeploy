@@ -181,7 +181,7 @@ export class ConfigSyncManager {
               create: String(row[19] || '').trim(),
               edit: String(row[20] || '').trim(),
               select: String(row[21] || '').trim(),
-              list: String([22] || '').trim(),
+              list: String(row[22] || '').trim(),
               map: String(row[23] || '').trim(),
               card: String(row[24] || '').trim(),
               report: String(row[25] || '').trim(),

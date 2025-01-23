@@ -226,6 +226,7 @@ export class ConfigSyncManager {
       row.create,
       row.edit,
       row.select,
+      row.list,
       row.map,
       row.card,
       row.report,
@@ -238,7 +239,7 @@ export class ConfigSyncManager {
     });
   
     // Combine headers and data
-    return [...headers, Papa.unparse(data)].join('\n');
+    return [...headers, dataContent].join('\n');
   }
 
   private getModuleInfo(moduleKey: string): {

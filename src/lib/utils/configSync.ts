@@ -131,7 +131,7 @@ export class ConfigSyncManager {
     }
 
     const lines = csvContent.split('\n');
-    const headers = lines.slice(0, 5);
+    const headers = lines.slice(1, 5);
     const contentLines = lines.slice(5);
 
     // Process module line
@@ -181,9 +181,10 @@ export class ConfigSyncManager {
               create: String(row[19] || '').trim(),
               edit: String(row[20] || '').trim(),
               select: String(row[21] || '').trim(),
-              map: String(row[22] || '').trim(),
-              card: String(row[23] || '').trim(),
-              report: String(row[24] || '').trim(),
+              list: String([22] || '').trim(),
+              map: String(row[23] || '').trim(),
+              card: String(row[24] || '').trim(),
+              report: String(row[25] || '').trim(),
               customization: String(row[26] || '').trim()
             }));
   
@@ -230,7 +231,6 @@ export class ConfigSyncManager {
       row.map,
       row.card,
       row.report,
-      '', // Empty column
       row.customization,
       '', '', '', '', '', '', '' // Empty trailing columns
     ])), {

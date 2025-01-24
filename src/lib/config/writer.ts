@@ -167,11 +167,16 @@ export class ConfigWriter {
     const timestamp = new Date().toISOString()
       .replace(/[:\-T]/g, '')
       .slice(0, 14);
-    return `config_${sanitizedUserKey}.csv`;
+    return `config.csv`;
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   private async writeBackup(content: string, directory: string, filename: string): Promise<void> {
     try {
+      await this.delay(2000);
       await fs.mkdir(directory, { recursive: true });
       const backupPath = path.join(directory, filename);
       await fs.writeFile(backupPath, content, 'utf-8');

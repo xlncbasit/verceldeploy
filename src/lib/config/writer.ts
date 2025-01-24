@@ -13,13 +13,13 @@ export class ConfigWriter {
   private directoryManager: DirectoryManager;
   private configBackupPath: string;
   private codesetBackupPath: string;
-  private secondaryUserDir: string;
+  
 
   constructor() {
     this.directoryManager = new DirectoryManager();
     this.configBackupPath = '/opt/tomcat/webapps/ROOT/upload/configfiles';
     this.codesetBackupPath = '/opt/tomcat/webapps/ROOT/upload/codefiles';
-    this.secondaryUserDir = 'C:/Users/ASUS/Downloads/project-bolt-sb1-sb1v1q/project/data/users';
+    
   }
 
   private processCodesetContent(content: string, orgKey: string): string {
@@ -154,14 +154,7 @@ export class ConfigWriter {
       }
 
       // Write to secondary location if configured
-      if (this.secondaryUserDir) {
-        await this.writeToSecondaryLocation(params, {
-          configuration: modifiedConfig,
-          codesets: parsedResponse.codesets ? 
-            this.processCodesetContent(parsedResponse.codesets, params.orgKey) : 
-            undefined
-        });
-      }
+      
 
     } catch (error) {
       console.error('Error writing files:', error);
@@ -182,53 +175,19 @@ export class ConfigWriter {
       await fs.mkdir(directory, { recursive: true });
       const backupPath = path.join(directory, filename);
       await fs.writeFile(backupPath, content, 'utf-8');
-      console.log(`Backup written to: ${backupPath}`);
+      console.log(`🔄 Backup created at: ${backupPath}`);
+      console.log(`📁 Backup directory: ${directory}`);
+      console.log(`📄 Backup filename: ${filename}`);
+      // Log first few lines of content for verification
+      console.log(`📝 First few lines of backup content:`);
+      const firstLines = content.split('\n').slice(0, 5).join('\n');
+      console.log(firstLines);
     } catch (error) {
-      console.error(`Error writing backup to ${directory}:`, error);
+      console.error(`❌ Error writing backup to ${directory}:`, error);
     }
   }
 
-  private async writeToSecondaryLocation(params: ConfigParams, parsedResponse: ParsedResponse): Promise<void> {
-    try {
-      await this.ensureSecondaryDirectories(params);
+  
 
-      const secondaryConfigPath = path.join(
-        this.secondaryUserDir,
-        params.orgKey,
-        params.moduleKey,
-        'config.csv'
-      );
-      await fs.writeFile(secondaryConfigPath, parsedResponse.configuration, 'utf-8');
-      console.log(`Configuration written to secondary location: ${secondaryConfigPath}`);
-
-      if (parsedResponse.codesets) {
-        const secondaryCodesetPath = path.join(
-          this.secondaryUserDir,
-          params.orgKey,
-          params.moduleKey,
-          'codesetvalues.csv'
-        );
-        await fs.writeFile(secondaryCodesetPath, parsedResponse.codesets, 'utf-8');
-        console.log(`Codesets written to secondary location: ${secondaryCodesetPath}`);
-      }
-    } catch (error) {
-      console.error('Error writing to secondary location:', error);
-      throw error;
-    }
-  }
-
-  private async ensureSecondaryDirectories(params: ConfigParams): Promise<void> {
-    const { orgKey, moduleKey } = params;
-    const orgDir = path.join(this.secondaryUserDir, orgKey);
-    const moduleDir = path.join(orgDir, moduleKey);
-
-    try {
-      await fs.mkdir(orgDir, { recursive: true });
-      await fs.mkdir(moduleDir, { recursive: true });
-      console.log(`Secondary directories created: ${moduleDir}`);
-    } catch (error) {
-      console.error('Error creating secondary directories:', error);
-      throw error;
-    }
-  }
+  
 }

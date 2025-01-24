@@ -150,9 +150,9 @@ export class ConfigSyncManager {
       }
   
       const lines = csvContent.split('\n');
-      const originalHeaders = lines.slice(1, 5); // Include empty line after headers
+      const originalHeaders = lines.slice(1, 4); // Include empty line after headers
       const modifiedHeaders = this.modifyHeaders(originalHeaders, orgKey);
-      const contentLines = lines.slice(5);
+      const contentLines = lines.slice(4);
   
       Papa.parse(contentLines.join('\n'), {
         header: false,

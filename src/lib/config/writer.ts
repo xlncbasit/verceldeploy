@@ -24,12 +24,12 @@ export class ConfigWriter {
 
   private processCodesetContent(content: string, orgKey: string): string {
     const lines = content.split('\n');
-    const processedLines = [];
+    const processedLines: string[] = [];
     
     // Process the first line (header)
     if (lines.length > 0) {
         // Replace FIELDMOBI_DEFAULT with organization in header
-        const headerLine = lines[0].replace('FIELDMOBI_DEFAULT', '${orgKey}');
+        const headerLine = lines[0].replace('FIELDMOBI_DEFAULT', orgKey);
         processedLines.push(headerLine);
     }
 
@@ -62,11 +62,11 @@ export class ConfigWriter {
     }
 
     return processedLines.join('\n');
-}
+  }
 
-  private async verifyCodesetContent(path: string, orgKey: string): Promise<void> {
+  private async verifyCodesetContent(filePath: string, orgKey: string): Promise<void> {
     try {
-      const content = await fs.readFile(path, 'utf8');
+      const content = await fs.readFile(filePath, 'utf8');
       const firstLine = content.split('\n')[0];
       const cells = firstLine.split(',');
       if (cells[5] !== orgKey) {
@@ -79,25 +79,32 @@ export class ConfigWriter {
     }
   }
 
-  private modifyHeaders(csvContent: string, orgKey: string): string {
-    const lines = csvContent.split('\n');
+  private modifyConfigContent(content: string, orgKey: string): string {
+    const lines = content.split('\n');
     
-    if (lines.length < 1) {
-      throw new Error('Invalid CSV format: insufficient lines');
+    // Find the line containing "Application" (typically line 2)
+    const applicationLineIndex = lines.findIndex(line => 
+      line.includes('Application')
+    );
+  
+    if (applicationLineIndex !== -1) {
+      // Split the line into cells
+      const cells = lines[applicationLineIndex].split(',');
+      
+      // Change "Application" to "Customization" (column B)
+      if (cells[1]) {
+        cells[1] = 'Customization';
+      }
+      
+      // Insert orgKey (column C)
+      if (cells[2]) {
+        cells[2] = orgKey;
+      }
+      
+      // Reconstruct the line
+      lines[applicationLineIndex] = cells.join(',');
     }
-
-    const headerCells = lines[0].split(',');
-    
-    if (headerCells.length < 3) {
-      throw new Error('Invalid CSV format: insufficient columns in header');
-    }
-
-    // Update header cells
-    headerCells[1] = 'Customization';
-    headerCells[2] = orgKey;
-
-    // Reconstruct the file
-    lines[0] = headerCells.join(',');
+  
     return lines.join('\n');
   }
 
@@ -106,7 +113,7 @@ export class ConfigWriter {
       await this.directoryManager.ensureDirectories(params);
       
       // Handle configuration file
-      const modifiedConfig = this.modifyHeaders(parsedResponse.configuration, params.orgKey);
+      const modifiedConfig = this.modifyConfigContent(parsedResponse.configuration, params.orgKey);
       const configPath = this.directoryManager.getUserConfigFilePath(params, 'config');
       await fs.writeFile(configPath, modifiedConfig, 'utf-8');
       console.log('Configuration file written successfully');

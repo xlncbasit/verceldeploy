@@ -162,7 +162,7 @@ export class ConfigSyncManager {
       }
   
       const lines = csvContent.split('\n');
-      const originalHeaders = lines.slice(0, 5);
+      const originalHeaders = lines.slice(1, 5);
       const modifiedHeaders = this.modifyHeaders(originalHeaders, orgKey);
       const contentLines = lines.slice(5);
   

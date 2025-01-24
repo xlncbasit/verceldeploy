@@ -1,5 +1,6 @@
 // src/lib/utils/configSync.ts
 import { DirectoryManager } from './directory';
+import { ConfigWriter } from '../config/writer';
 import type { ConfigParams } from '@/types';
 import Papa from 'papaparse';
 
@@ -67,9 +68,11 @@ export interface SyncConfig {
 
 export class ConfigSyncManager {
   private dirManager: DirectoryManager;
+  private configWriter: ConfigWriter;
   
   constructor() {
     this.dirManager = new DirectoryManager();
+    this.configWriter = new ConfigWriter();
   }
 
   private static configGroups: Record<string, ConfigGroup> = {
@@ -105,21 +108,6 @@ export class ConfigSyncManager {
           name: 'Asset Transactions', 
           type: 'TRANSACTIONS',
           syncFields: ['displayName', 'description', 'listType']
-        }
-      }
-    },
-    LEADS: {
-      name: 'Leads Group',
-      modules: {
-        'FM_SALES_OBJECT_LEADSLITE_ALL': { 
-          name: 'Leads Master', 
-          type: 'MASTER',
-          syncFields: ['fieldType', 'displayName', 'description', 'listType', 'listValues']
-        },
-        'FM_SALES_UPDATE_LEADSLITE_ALL': { 
-          name: 'Leads Updates', 
-          type: 'UPDATES',
-          syncFields: ['displayName', 'description']
         }
       }
     }
@@ -162,7 +150,7 @@ export class ConfigSyncManager {
       }
   
       const lines = csvContent.split('\n');
-      const originalHeaders = lines.slice(1, 5);
+      const originalHeaders = lines.slice(1, 5); // Include empty line after headers
       const modifiedHeaders = this.modifyHeaders(originalHeaders, orgKey);
       const contentLines = lines.slice(5);
   
@@ -261,8 +249,14 @@ export class ConfigSyncManager {
       skipEmptyLines: false
     });
   
-    // Combine headers and data
-    return [...headers, dataContent].join('\n');
+    // Make sure we have the empty line after headers
+    const headerContent = headers.join('\n');
+    // Add empty line after headers if not present
+    const hasEmptyLine = headers[headers.length - 1].trim() === '';
+    const separator = hasEmptyLine ? '' : '\n';
+
+    // Combine headers, empty line, and data
+    return `${headerContent}${separator}\n${dataContent}`;
   }
 
   private getModuleInfo(moduleKey: string): {
@@ -367,7 +361,7 @@ export class ConfigSyncManager {
         return;
       }
 
-      // Parse source configuration with headers - now passing orgKey
+      // Parse source configuration with headers
       const sourceConfigWithHeaders = await this.parseConfigCSV(updatedConfig.config, params.orgKey);
       console.log('Parsed source configuration with headers');
 
@@ -393,10 +387,13 @@ export class ConfigSyncManager {
           updatedTargetConfig
         );
 
-        await this.dirManager.writeConfigurations(
+        // Write configuration using ConfigWriter
+        await this.configWriter.writeFiles(
           targetParams,
-          newConfigCSV,
-          updatedConfig.codesets || targetFiles.codesetContent
+          {
+            configuration: newConfigCSV,
+            codesets: updatedConfig.codesets || targetFiles.codesetContent
+          }
         );
 
         console.log(`Successfully synchronized module: ${moduleKey}`);

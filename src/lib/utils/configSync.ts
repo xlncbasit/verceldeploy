@@ -143,34 +143,33 @@ export class ConfigSyncManager {
   }
 
   private async parseConfigCSV(csvContent: string, orgKey: string): Promise<{ headers: string[], data: ParsedConfigRow[] }> {
+    if (!csvContent?.trim()) throw new Error('Empty CSV content');
+   
+    const lines = csvContent.split('\n');
+    const headerEndIndex = lines.findIndex(line => line.startsWith('fieldCode'));
+    if (headerEndIndex === -1) throw new Error('No field data found');
+   
+    const headers: string[] = lines.slice(0, headerEndIndex);
+    const moduleLineIndex = headers.findIndex(line => line.startsWith('module,'));
+    
+    if (moduleLineIndex !== -1) {
+      const cells = headers[moduleLineIndex].split(',');
+      cells[2] = orgKey;
+      headers[moduleLineIndex] = cells.join(',');
+    }
+   
     return new Promise((resolve, reject) => {
-      if (!csvContent?.trim()) {
-        console.error('Empty CSV content received');
-        throw new Error('Empty CSV content');
-      }
-  
-      const lines = csvContent.split('\n');
-      const originalHeaders = lines.slice(1, 4); // Include empty line after headers
-      const modifiedHeaders = this.modifyHeaders(originalHeaders, orgKey);
-      const contentLines = lines.slice(4);
-  
-      Papa.parse(contentLines.join('\n'), {
+      Papa.parse(lines.slice(headerEndIndex).join('\n'), {
         header: false,
         skipEmptyLines: 'greedy',
         complete: (results) => {
-          if (!results.data?.length) {
-            console.error('No valid data rows found in CSV');
-            return reject(new Error('No valid data rows found'));
-          }
-  
-          const rows = results.data as unknown[][];
+          if (!results.data?.length) return reject(new Error('No valid data rows found'));
           
+          const rows = results.data as Array<Array<unknown>>;
           const processedData = rows
-            .filter((row): row is unknown[] => 
-              Array.isArray(row) && row.some(cell => 
-                cell !== null && cell !== undefined && String(cell).trim() !== ''
-              )
-            )
+            .filter(row => Array.isArray(row) && row.some(cell => 
+              cell !== null && cell !== undefined && String(cell).trim() !== ''
+            ))
             .map((row): ParsedConfigRow => ({
               fieldCode: String(row[0] || '').trim(),
               type: String(row[1] || '').trim(),
@@ -199,19 +198,18 @@ export class ConfigSyncManager {
               report: String(row[24] || '').trim(),
               customization: String(row[26] || '').trim()
             }));
-  
-          resolve({
-            headers: modifiedHeaders,
-            data: processedData
-          });
+   
+          resolve({ headers, data: processedData });
         },
-        error: (error: Error) => {
-          console.error('CSV parsing error:', error);
-          reject(error);
-        }
+        error: (error: Error) => reject(error)
       });
     });
-  }
+   }
+   
+   private isEmptyLine(line?: string): boolean {
+    return !!line && line.split(',').every(cell => !cell.trim());
+   }
+
 
   private writeConfigCSV(headers: string[], data: ParsedConfigRow[]): string {
     // Convert data rows to CSV
@@ -256,7 +254,7 @@ export class ConfigSyncManager {
     const separator = hasEmptyLine ? '' : '\n';
 
     // Combine headers, empty line, and data
-    return `${headerContent}${separator}\n${dataContent}`;
+    return `${headerContent}${separator}${dataContent}`;
   }
 
   private getModuleInfo(moduleKey: string): {

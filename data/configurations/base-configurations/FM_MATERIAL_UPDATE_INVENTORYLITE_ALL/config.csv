@@ -1,5 +1,5 @@
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-module,Application,FM_MATERIAL_LITE,Stock Capture,FM_MATERIAL_UPDATE_INVENTORYLITE_ALL,Database,fmmaterial,Collection,fmupdates,account_field,ACCOUNT_KEY,type_field,DATA_TYPE,type_value,STOCKCAPTURE,key_field,fieldCode001%AUTO#STKCAP#SEQ#8,display_fields,fieldCode002#fieldCode003#fieldCode004,datatype_key,fieldCode002,project_key,NONE,team_key,NONE,total_fields,fieldCode006,alert_key,fieldCode011%Pending%Verified%Approved%Ready%Inactive%Hold%Error,chart_pie,fieldCode005,chart_column,fieldCode004,record_type,UPDATE
+module,Application,FM_MATERIAL_LITE,Stock Capture,FM_MATERIAL_UPDATE_INVENTORYLITE_ALL,Database,fmmaterial,Collection,fmupdates,account_field,ACCOUNT_KEY,type_field,DATA_TYPE,type_value,STOCKCAPTURE,display_fields,fieldCode002#fieldCode003#fieldCode004,datatype_key,fieldCode002,project_key,NONE,team_key,NONE,total_fields,fieldCode006,chart_pie,fieldCode005,chart_column,fieldCode004,record_type,UPDATE
 access,CREATE,ROLES#ADMIN#MANAGER#TEAMLEAD,EDIT,ROLES#MANAGER#TEAMLEAD,DELETE,ROLES#MANAGER,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Field Code,field_type,data,label,visibility,message,default,validation,list_type,list_value,multi_group,hidden,Link Setup,Update Setup,FILTER,SEARCH,SORT,MOBILE,DETAIL,CREATE,EDIT,SELECT,LIST,MAP,CARD,REPORT,Customization,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

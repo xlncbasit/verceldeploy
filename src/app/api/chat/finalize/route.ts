@@ -6,6 +6,12 @@ import { ConfigValidator } from '@/lib/utils/validation';
 import { ConfigSyncManager } from '@/lib/utils/configSync';
 import type { ChatMessage, ConfigParams, ConfigFiles } from '@/types';
 
+interface ConversationContext {
+  pastRequirements: string[];
+  keyDecisions: Record<string, string>;
+  lastTopics: string[];
+}
+
 interface ClaudeResponse {
   configuration: string;
   explanation: string;
@@ -37,9 +43,10 @@ export async function POST(request: Request) {
     ]) as {
       conversationHistory: ChatMessage[];
       params: ConfigParams;
+      context?: ConversationContext;
     };
 
-    const { conversationHistory, params } = body;
+    const { conversationHistory, params, context } = body;
 
     // Validate input
     if (!conversationHistory?.length || !params) {

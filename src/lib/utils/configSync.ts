@@ -4,7 +4,7 @@ import { ConfigWriter } from '../config/writer';
 import type { ConfigParams } from '@/types';
 import Papa from 'papaparse';
 
-type ModuleType = 'MASTER' | 'TRANSACTIONS' | 'UPDATES' | 'BALANCE';
+type ModuleType = 'MASTER' | 'TRANSACTIONS' | 'UPDATES' | 'BALANCE' | 'CONTROL' | 'SUMMARY' | 'STATUS' | 'ACTIVITIES' | 'ASSIGNMENT' | 'REPORTING' | 'SETUP' | 'OPEN';
 
 interface ModuleConfig {
   name: string;
@@ -76,38 +76,345 @@ export class ConfigSyncManager {
   }
 
   private static configGroups: Record<string, ConfigGroup> = {
-    PRODUCT: {
-      name: 'Product Group',
+    // WORKFORCE MANAGEMENT GROUP
+    WORKFORCE: {
+      name: 'Workforce Management Group',
+      modules: {
+        'FM_WORKFORCE_OBJECT_WORKFORCELITE_ALL': { 
+          name: 'Workforce Master', 
+          type: 'MASTER',
+          syncFields: ['fieldType', 'displayName', 'description', 'listType', 'listValues', 'required', 'unique', 'searchable']
+        },
+        'FM_WORKFORCE_UPDATE_ATTENDANCELITE_ALL': { 
+          name: 'Attendance Reporting', 
+          type: 'TRANSACTIONS',
+          syncFields: ['displayName', 'description', 'listType', 'listValues']
+        },
+        'FM_WORKFORCE_UPDATE_EXPENSELITE_ALL': { 
+          name: 'Expense Reporting', 
+          type: 'TRANSACTIONS',
+          syncFields: ['displayName', 'description', 'listType', 'listValues']
+        },
+        'FM_WORKFORCE_CONTROL_EXPENSES_ALL': { 
+          name: 'Expense Claims', 
+          type: 'CONTROL',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        
+        
+        'FM_WORKFORCE_STATUS_MESSAGES_ALL': { 
+          name: 'The Beeline', 
+          type: 'STATUS',
+          syncFields: ['displayName', 'description']
+        }
+      }
+    },
+
+    // SERVICE MANAGEMENT GROUP
+    SERVICE: {
+      name: 'Service Management Group',
+      modules: {
+        'FM_WORKFORCE_OBJECT_CATEGORYLITE_ALL': { 
+          name: 'Service Master', 
+          type: 'MASTER',
+          syncFields: ['fieldType', 'displayName', 'description', 'listType', 'listValues', 'required', 'unique']
+        },
+        'FM_WORKFORCE_ACTIVITIES_WORKLITE_ALL': { 
+          name: 'Service Assignment', 
+          type: 'ACTIVITIES',
+          syncFields: ['displayName', 'description', 'listType', 'listValues']
+        },
+        'FM_WORKFORCE_UPDATE_WORKLITE_ALL': { 
+          name: 'Service Updates', 
+          type: 'UPDATES',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        
+      }
+    },
+
+    // ASSET MANAGEMENT GROUP
+    ASSET: {
+      name: 'Asset Management Group',
+      modules: {
+        'FM_ASSETS_OBJECT_CATEGORYLITE_ALL': { 
+          name: 'Asset Category Master', 
+          type: 'MASTER',
+          syncFields: ['fieldType', 'displayName', 'description', 'listType', 'listValues', 'required', 'unique']
+        },
+        'FM_ASSETS_OBJECT_ASSETSLITE_ALL': { 
+          name: 'Asset List', 
+          type: 'MASTER',
+          syncFields: ['fieldType', 'displayName', 'description', 'listType', 'listValues', 'required', 'unique']
+        },
+        'FM_ASSETS_ACTIVITIES_ASSETSLITE_ALL': { 
+          name: 'Asset Activity Assignment', 
+          type: 'ACTIVITIES',
+          syncFields: ['displayName', 'description', 'listType', 'listValues']
+        },
+        'FM_ASSETS_UPDATE_ASSETSLITE_ALL': { 
+          name: 'Asset Activity Updates', 
+          type: 'UPDATES',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        
+      }
+    },
+
+    // MATERIAL MANAGEMENT GROUP
+    MATERIAL: {
+      name: 'Material Management Group',
       modules: {
         'FM_MATERIAL_OBJECT_PRODUCTLITE_MANAGER': { 
           name: 'Product Master', 
           type: 'MASTER',
           syncFields: ['fieldType', 'displayName', 'description', 'listType', 'listValues', 'required', 'unique', 'searchable']
         },
-        'FM_MATERIAL_OBJECT_INVENTORYLITE_ALL': { 
-          name: 'Inventory Transactions', 
-          type: 'TRANSACTIONS',
+        'FM_MATERIAL_SETUP_INVENTORYLITE_MANAGER': { 
+          name: 'Opening Stock and Inventory Setup', 
+          type: 'SETUP',
+          syncFields: ['displayName', 'description', 'listType', 'listValues']
+        },
+        
+        'FM_MATERIAL_SUMMARY_STORAGEINVENTORYLITE_ALL': { 
+          name: 'Storage-wise Stock Balance', 
+          type: 'SUMMARY',
+          syncFields: ['displayName', 'description']
+        },
+        'FM_MATERIAL_ACTIVITIES_INVENTORYLITE_ALL': { 
+          name: 'Material Activity Assignment', 
+          type: 'ACTIVITIES',
           syncFields: ['displayName', 'description', 'listType', 'listValues']
         },
         'FM_MATERIAL_UPDATE_INVENTORYLITE_ALL': { 
-          name: 'Inventory Updates', 
+          name: 'Material Activity Updates', 
           type: 'UPDATES',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        'FM_MATERIAL_TRANSACTIONS_INVENTORYLITE_ALL': { 
+          name: 'Stock Transactions', 
+          type: 'TRANSACTIONS',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        'FM_MATERIAL_OPEN_INVENTORYLITE_MANAGER': { 
+          name: 'Opening Stock and Inventory Setup', 
+          type: 'OPEN',
+          syncFields: ['displayName', 'description', 'listType', 'listValues']
+        }
+      }
+    },
+
+    // CUSTOMER MANAGEMENT GROUP
+    CUSTOMER: {
+      name: 'Customer Management Group',
+      modules: {
+        'FM_CUSTOMER_OBJECT_PARTNERLITE_ALL': { 
+          name: 'Customer Account Master', 
+          type: 'MASTER',
+          syncFields: ['fieldType', 'displayName', 'description', 'listType', 'listValues', 'required', 'unique', 'searchable']
+        },
+        'FM_CUSTOMER_ASSIGNMENT_PARTNERLITE_ALL': { 
+          name: 'Customer Assignment', 
+          type: 'ASSIGNMENT',
+          syncFields: ['displayName', 'description', 'listType', 'listValues']
+        },
+        'FM_CUSTOMER_REPORTING_PARTNERLITE_ALL': { 
+          name: 'Customer Updates', 
+          type: 'REPORTING',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        'FM_CUSTOMER_ACTIVITIES_ENQUIRYLITE_ALL': { 
+          name: 'Enquiries', 
+          type: 'ACTIVITIES',
+          syncFields: ['displayName', 'description', 'listType', 'listValues']
+        },
+        'FM_CUSTOMER_UPDATE_ENQUIRYLITE_ALL': { 
+          name: 'Enquiry Updates', 
+          type: 'UPDATES',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        'FM_CUSTOMER_ACTIVITIES_ORDERLITE_ALL': { 
+          name: 'Sales Orders', 
+          type: 'ACTIVITIES',
+          syncFields: ['displayName', 'description', 'listType', 'listValues']
+        },
+        'FM_CUSTOMER_UPDATE_PLANNINGLITE_ALL': { 
+          name: 'Sales Order Milestones and Planning', 
+          type: 'UPDATES',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        'FM_CUSTOMER_CONTROL_INVOICELITE_ALL': { 
+          name: 'Customer Invoices (AR)', 
+          type: 'CONTROL',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        
+        'FM_CUSTOMER_OPEN_INVOICELITE_ALL': { 
+          name: 'Outstanding Customer Invoices', 
+          type: 'OPEN',
+          syncFields: ['displayName', 'description', 'listType']
+        }
+      }
+    },
+
+    // VENDOR MANAGEMENT GROUP
+    VENDOR: {
+      name: 'Vendor Management Group',
+      modules: {
+        'FM_VENDOR_OBJECT_PARTNERLITE_ALL': { 
+          name: 'Vendor Account Master', 
+          type: 'MASTER',
+          syncFields: ['fieldType', 'displayName', 'description', 'listType', 'listValues', 'required', 'unique', 'searchable']
+        },
+        'FM_VENDOR_ACTIVITIES_ORDERLITE_ALL': { 
+          name: 'Purchase Orders', 
+          type: 'ACTIVITIES',
+          syncFields: ['displayName', 'description', 'listType', 'listValues']
+        },
+        'FM_VENDOR_UPDATE_PLANNINGLITE_ALL': { 
+          name: 'Purchase Order Milestones and Planning', 
+          type: 'UPDATES',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        'FM_VENDOR_CONTROL_INVOICELITE_ALL': { 
+          name: 'Vendor Invoices (AP)', 
+          type: 'CONTROL',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        
+        'FM_VENDOR_OPEN_INVOICELITE_ALL': { 
+          name: 'Outstanding Vendor Invoices', 
+          type: 'OPEN',
+          syncFields: ['displayName', 'description', 'listType']
+        }
+      }
+    },
+
+    // WORK ORDER GROUP
+    WORKORDER: {
+      name: 'Work Order Group',
+      modules: {
+        'FM_WORKORDER_ACTIVITIES_ORDERLITE_ALL': { 
+          name: 'Work Orders', 
+          type: 'ACTIVITIES',
+          syncFields: ['displayName', 'description', 'listType', 'listValues']
+        },
+        'FM_WORKORDER_UPDATE_PLANNINGLITE_ALL': { 
+          name: 'Work Order Milestones and Planning', 
+          type: 'UPDATES',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        'FM_WORKORDER_UPDATE_CHARGEBACKLITE_ALL': { 
+          name: 'Internal Charge Backs', 
+          type: 'UPDATES',
+          syncFields: ['displayName', 'description', 'listType']
+        }
+      }
+    },
+
+    // CASH AND BANK GROUP
+    CASHBANK: {
+      name: 'Cash and Bank Group',
+      modules: {
+        'FM_CASHBANK_OBJECT_CASHBANKLITE_MANAGER': { 
+          name: 'Cash Bank Master', 
+          type: 'MASTER',
+          syncFields: ['fieldType', 'displayName', 'description', 'listType', 'listValues', 'required', 'unique', 'searchable']
+        },
+        'FM_CASHBANK_TRANSACTIONS_CASHBANKLITE_MANAGER': { 
+          name: 'Cash Bank Transactions', 
+          type: 'TRANSACTIONS',
+          syncFields: ['displayName', 'description', 'listType', 'listValues']
+        },
+        'FM_CASHBANK_UPDATE_OTHERLITE_MANAGER': { 
+          name: 'Other Cash Bank Updates', 
+          type: 'UPDATES',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        'FM_CASHBANK_UPDATE_RECEIPTSLITE_MANAGER': { 
+          name: 'Customer Receipts', 
+          type: 'UPDATES',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        'FM_CASHBANK_UPDATE_VENPAYMENTSLITE_MANAGER': { 
+          name: 'Vendor Payments', 
+          type: 'UPDATES',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        'FM_CASHBANK_UPDATE_EMPPAYMENTSLITE_MANAGER': { 
+          name: 'Expense Payments', 
+          type: 'UPDATES',
+          syncFields: ['displayName', 'description', 'listType']
+        }
+      }
+    },
+
+    // ACCOUNTING GROUP
+    ACCOUNTING: {
+      name: 'Accounting Group',
+      modules: {
+        'FM_ACCOUNTS_OBJECT_CHARGESLITE_MANAGER': { 
+          name: 'Charge Codes', 
+          type: 'MASTER',
+          syncFields: ['fieldType', 'displayName', 'description', 'listType', 'listValues', 'required', 'unique', 'searchable']
+        },
+        'FM_ACCOUNTS_UPDATE_FINDATALITE_ALL': { 
+          name: 'Ledger Updates', 
+          type: 'UPDATES',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        'FM_ACCOUNTS_CONTROL_BALANCELITE_ALL': { 
+          name: 'Control Balances', 
+          type: 'CONTROL',
+          syncFields: ['displayName', 'description']
+        },
+        
+        'FM_ACCOUNTS_TRANSACTIONS_FINDATALITE_ALL': { 
+          name: 'Financial Transactions', 
+          type: 'TRANSACTIONS',
+          syncFields: ['displayName', 'description', 'listType']
+        },
+        'FM_ACCOUNTS_OPENCONTROL_BALANCELITE_ALL': { 
+          name: 'Open Control Balances', 
+          type: 'OPEN',
+          syncFields: ['displayName', 'description']
+        },
+        'FM_ACCOUNTS_OPENSUMMARY_BALANCELITE_ALL': { 
+          name: 'Open Financial Balances (GL)', 
+          type: 'OPEN',
+          syncFields: ['displayName', 'description']
+        },
+        'FM_ACCOUNTS_OPEN_CLOSURELITE_ALL': { 
+          name: 'Year End Closure', 
+          type: 'OPEN',
           syncFields: ['displayName', 'description']
         }
       }
     },
-    ASSET: {
-      name: 'Asset Group',
+
+    // SYSTEM ADMINISTRATION GROUP
+    SYSADMIN: {
+      name: 'System Administration Group',
       modules: {
-        'FM_ASSETS_OBJECT_ASSETLITE_ALL': { 
-          name: 'Asset Master', 
+        'FM_SYSADMIN_OBJECT_LOCATIONLITE_ADMIN': { 
+          name: 'Locations', 
           type: 'MASTER',
-          syncFields: ['fieldType', 'displayName', 'description', 'listType', 'listValues', 'required', 'unique']
+          syncFields: ['fieldType', 'displayName', 'description', 'listType', 'listValues', 'required', 'unique', 'searchable']
         },
-        'FM_ASSETS_OBJECT_PRODUCTLITE_ALL': { 
-          name: 'Asset Transactions', 
-          type: 'TRANSACTIONS',
-          syncFields: ['displayName', 'description', 'listType']
+        'FM_SYSADMIN_OBJECT_PROJECTLITE_ADMIN': { 
+          name: 'Projects', 
+          type: 'MASTER',
+          syncFields: ['fieldType', 'displayName', 'description', 'listType', 'listValues', 'required', 'unique', 'searchable']
+        },
+        'FM_SYSADMIN_OBJECT_PRODUCTLITE_MANAGER': { 
+          name: 'Products and Services', 
+          type: 'MASTER',
+          syncFields: ['fieldType', 'displayName', 'description', 'listType', 'listValues', 'required', 'unique', 'searchable']
+        },
+        'FM_PARTNER_OBJECT_PARTNERLITE_ALL': { 
+          name: 'Business Partners', 
+          type: 'MASTER',
+          syncFields: ['fieldType', 'displayName', 'description', 'listType', 'listValues', 'required', 'unique', 'searchable']
         }
       }
     }

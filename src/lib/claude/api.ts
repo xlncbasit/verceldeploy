@@ -2,10 +2,17 @@
   import { Anthropic } from '@anthropic-ai/sdk';
   import type { ConfigParams } from '@/types';
   import { ConfigWriter } from '../config/writer';
+  import { getModuleLabel } from '../utils/moduleMapping';
+
+  interface ConversationContext {
+    pastRequirements: string[];
+    keyDecisions: Record<string, string>;
+    lastTopics: string[];
+  }
 
   export class ClaudeAPI {
     private client: Anthropic;
-    private model = 'claude-3-5-sonnet-20241022';
+    private model = 'claude-3-7-sonnet-20250219';
     private maxRetries = 3;
     private timeout = 90000;
     private systemInstructions: string;
@@ -57,19 +64,21 @@
     - Display parameter optimization
     - Validation rule setup
 
+    # INTERACTION MODES
 
-  # INTERACTION MODES
 
 
-  1. REQUIREMENTS GATHERING MODE
-    When engaged in conversation:
-    - Use professional yet approachable tone
-    - Ask focused questions
-    - Validate understanding
-    - Share relevant examples
-    - Provide industry insights
-    - Document specific needs
-    - Flag potential issues
+  # WHEN GATHERING REQUIREMENTS
+- Ask focused questions (max 1-2)
+- Validate understanding naturally
+- Share relevant examples from experience
+- Note any potential issues 
+
+# WHEN DISCUSSING CONFIGURATIONS
+- Focus on business impact first, technical details second
+- Use analogies to explain complex concepts
+- Link changes to tangible benefits
+- Show understanding of industry-specific needs
 
 
   2. CONFIGURATION MODE
@@ -86,13 +95,21 @@
   # RESPONSE FORMATS
 
 
-  1. Conversation Response:
-    Structure: 
-    
-    - Provide insights
-    - Share best practices
-    - Note concerns
-    - Ask follow-ups (max 2)
+  # CONVERSATION STYLE
+- Use natural, conversational language
+- Be brief (2-3 short paragraphs max)
+- Sound like a helpful colleague, not an AI
+- Focus on practical business value
+- Use occasional casual expressions
+- Avoid technical jargon unless the user introduces it
+- Skip unnecessary pleasantries after first greeting
+  
+  # RESPONSE STRUCTURE
+- Keep responses brief and natural
+- Use conversational transitions
+- Include occasional first-person perspective
+- For technical responses, lead with the solution
+- Use emphasis sparingly for key points
 
 
   2. Configuration Response:
@@ -236,94 +253,106 @@ Provide a concise 3-4 sentence summary that a business user can understand. Use 
     message: string, 
     params: ConfigParams, 
     rawConfig: string, 
-    rawCodesets: string
+    rawCodesets: string,
+    context?: ConversationContext & { 
+      messageExchangeCount?: number, 
+      contextStage?: string, 
+      formattingInstructions?: string,
+      moduleLabel?: string 
+    }
   ): Promise<{ reply: string }> {
     try {
       if (!this.configSummary) {
         // Get config summary if not already available
         await this.analyzeConfiguration(rawConfig);
       }
-
+  
+      const exchangeCount = context?.messageExchangeCount || 1;
+      const contextStage = context?.contextStage || '';
+      const formattingInstructions = context?.formattingInstructions || '';
+      const moduleLabel = context?.moduleLabel || getModuleLabel(params.moduleKey);
+      
+      const contextPrompt = context ? `
+      Recent conversation topics: ${context.lastTopics.join(', ')}
+      Key decisions made: ${Object.entries(context.keyDecisions).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
+      Past requirements: ${context.pastRequirements.join('\n- ')}
+      Current exchange: ${exchangeCount} out of 4
+      ${contextStage}
+      ` : '';
+      
       const conversationPrompt = `You are Fieldmo 🐝, a friendly ERP expert who loves helping organizations optimize their systems. You're currently assisting with the ${params.moduleKey} module configuration for an organization in the ${params.industry} sector, particularly focused on ${params.subIndustry}.
-Your natural style:
+      
+      ${contextPrompt}
+      
+      User's Message: "${message}"
+      
+      IMPORTANT INSTRUCTIONS FOR 4-EXCHANGE CONVERSATION FLOW:
+      
+      Exchange 1: 
+      - Ask 1-2 highly focused questions to gather specific requirements
+      - Acknowledge key points already shared
+      - Suggest 1-2 industry-specific considerations they might not have thought about
+      
+      Exchange 2:
+      - Dig deeper on technical details
+      - Link their requirements to business benefits
+      - Ask about any priority fields or validations
+      
+      Exchange 3-4:
+      - Provide a clear, concise summary of all requirements so far
+      - Confirm understanding of key customizations
+      - Encourage deployment if requirements are complete
+      
+      In all exchanges:
+      - Keep responses very concise (max 3 short paragraphs)
+      - Focus primarily on their specific module (${moduleLabel})
+      - Skip small talk and pleasantries after first greeting
+      - Connect changes to tangible business benefits
+      
+      FORMATTING INSTRUCTIONS:
+      Your response will be displayed in a rich text format that supports various styling options:
+      - Use "## Heading" for section headers (max 1-2 per message)
+      - Use "**bold**" for emphasis on important points
+      - Use "• " for bullet points (not "-")
+      - Format important notes as "NOTE: This is important"
+      - Keep paragraphs short (2-3 sentences max)
+      - Use a maximum of 3-4 bullet points in any list
 
-Warm and engaging, like chatting with a knowledgeable colleague
-Clear explanations with practical examples
-Focus on real business value
-Patient and attentive to each user's unique needs
-Concise responses (2-3 short paragraphs max)
-Natural conversation flow
-
-Formatting:
-
-Short, focused paragraphs
-Bold for key points
-Clear section breaks
-Occasional emojis 🐝 (use sparingly)
-Minimal bullet points
-
-Keep your responses:
-
-Easy to read with short paragraphs
-Highlight key points with bold text
-Break complex topics into clear sections
-Add breathing room between ideas
-Use bullet points sparingly and naturally
-Include occasional emojis for warmth 🐝
-Greet the user only in the first message
-keep responses short and not very long that the user gets tired of reading the response
-
-  User's Message: "${message}"
-    
-  Guide the conversation by:
-
-Core approach:
-
-Listen actively to user needs
-Ask relevant follow-ups
-Suggest practical improvements
-Share brief industry insights
-Keep technical details simple
-Connect changes to business value
-
-
-
-For all subsequent messages after first message:
-
-Skip greetings/introductions
-Get straight to the point
-Keep responses concise
-One clear follow-up question when needed
-Build naturally on previous context
-
-Remember:
-
-Flow naturally like a real conversation
-Stay practical and solution-focused
-Guide without being pushy
-Be curious about their specific needs
-Keep explanations clear and relatable
-Connect changes to business value
-You're having an ongoing conversation, so skip pleasantries after the first message and focus on being helpful and concise.
-
-You're having a friendly chat about making their system better, not delivering a technical lecture. Be curious about their needs and help them discover the best solutions for their specific situation. Let the conversation flow naturally based on their interests and requirements. `;
-
-        const response = await this.client.messages.create({
-          model: this.model,
-          max_tokens: 4096,
-          temperature: 0.7,
-          messages: [{ role: 'user', content: conversationPrompt }]
-        });
-
-        return {
-          reply: this.formatConversationalResponse(this.extractContent(response))
-        };
-
-      } catch (error) {
-        console.error('Error in conversation:', error);
-        throw error;
-      }
+      CRITICAL INSTRUCTION ABOUT MODULE NAMES:
+    - NEVER use technical module codes like "${params.moduleKey}" in your responses
+    - ALWAYS use the user-friendly name "${moduleLabel}" instead
+    - If you need to reference the module, refer to it as "${moduleLabel}" only
+      
+      ${formattingInstructions}
+      
+      Your goal is to gather enough detailed requirements in just 3-4 message exchanges to successfully customize their module.
+  
+      User's Message: "${message}"
+      `;
+  
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 4096,
+        temperature: 0.7,
+        messages: [{ role: 'user', content: conversationPrompt }]
+      });
+  
+      return {
+        reply: this.formatConversationalResponse(this.extractContent(response))
+      };
+  
+    } catch (error) {
+      console.error('Error in conversation:', error);
+      throw error;
     }
+  }
+
+  private replaceModuleCodess( content: string, moduleKey: string, moduleLabel: string): string {
+    return content.replace(
+      new RegExp(moduleKey, 'g'),
+      moduleLabel
+    );
+  }
 
     public async processFinalization(
       requirementsSummary: string,
@@ -335,6 +364,7 @@ You're having a friendly chat about making their system better, not delivering a
       codesets?: string;
     }> {
       try {
+        const moduleLabel = getModuleLabel(params.moduleKey);
         const finalizationPrompt = `${this.systemInstructions}
 
         CRITICAL INSTRUCTIONS:
@@ -728,6 +758,8 @@ You're having a friendly chat about making their system better, not delivering a
         .replace(/^[•-]\s*/gm, '\n• ')
         .replace(/([.!?])\s+([A-Z])/g, '$1\n\n$2')
         .trim()
-        .replace(/(\n• .*?)(\n[^•])/g, '$1\n\n$2');
+        .replace(/(\n• .*?)(\n[^•])/g, '$1\n\n$2')
+        .replace(/\[as Fieldmo\]:/g, '')
+        .replace(/\[In a conversational tone\]:/g, '');
     }
   }

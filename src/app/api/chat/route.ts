@@ -1,4 +1,6 @@
 // src/app/api/chat/route.ts
+// Updated version with better context handling
+
 import { NextResponse } from 'next/server';
 import { ClaudeAPI } from '@/lib/claude/api';
 import type { ConfigParams, ConfigFiles } from '@/types';
@@ -9,6 +11,12 @@ import { DirectoryManager } from '@/lib/utils/directory';
 const timeout = (ms: number) => new Promise((_, reject) => {
   setTimeout(() => reject(new Error(`Operation timed out after ${ms}ms`)), ms);
 });
+
+interface ConversationContext {
+  pastRequirements: string[];
+  keyDecisions: Record<string, string>;
+  lastTopics: string[];
+}
 
 interface ClaudeResponse {
   reply: string;
@@ -27,9 +35,17 @@ export async function POST(request: Request) {
     const body = await Promise.race([
       request.json(),
       timeout(5000) // 5s timeout for parsing
-    ]) as { message: string; params: ConfigParams };
+    ]) as { 
+      message: string; 
+      params: ConfigParams; 
+      context?: ConversationContext;
+    };
 
-    const { message, params } = body;
+    const { message, params, context = {
+      pastRequirements: [],
+      keyDecisions: {},
+      lastTopics: []
+    }} = body;
 
     if (!message || !params) {
       return NextResponse.json(
@@ -55,8 +71,8 @@ export async function POST(request: Request) {
 
     // Process with Claude with timeout
     const response = await Promise.race([
-      claude.processConversation(message, params, configContent, codesetContent,),
-      timeout(500000) // 50s timeout for Claude API
+      claude.processConversation(message, params, configContent, codesetContent, context),
+      timeout(50000) // 50s timeout for Claude API
     ]) as ClaudeResponse;
 
     return NextResponse.json({
